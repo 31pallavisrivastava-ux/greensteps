@@ -1,0 +1,156 @@
+[
+  {
+    "id": "grid-electricity-in",
+    "region": "IN",
+    "scope": "SCOPE2",
+    "category": "grid_electricity",
+    "value": 0.7117,
+    "unit": "kWh",
+    "source": "CEA_V21",
+    "sourceUrl": "https://cea.nic.in/cdm-co2-baseline-database/",
+    "validFrom": "2024-04-01T00:00:00.000Z"
+  },
+  {
+    "id": "grid-electricity-in-up",
+    "region": "IN-UP",
+    "scope": "SCOPE2",
+    "category": "grid_electricity",
+    "value": 0.82,
+    "unit": "kWh",
+    "source": "CEA_V21",
+    "sourceUrl": "https://cea.nic.in/cdm-co2-baseline-database/",
+    "validFrom": "2024-04-01T00:00:00.000Z"
+  },
+  {
+    "id": "fuel-petrol-in",
+    "region": "IN",
+    "scope": "SCOPE1",
+    "category": "petrol",
+    "value": 2.31,
+    "unit": "L",
+    "source": "IPCC",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "fuel-diesel-in",
+    "region": "IN",
+    "scope": "SCOPE1",
+    "category": "diesel",
+    "value": 2.68,
+    "unit": "L",
+    "source": "IPCC",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "fuel-cng-in",
+    "region": "IN",
+    "scope": "SCOPE1",
+    "category": "cng",
+    "value": 1.96,
+    "unit": "kg",
+    "source": "IPCC",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "lpg-in",
+    "region": "IN",
+    "scope": "SCOPE1",
+    "category": "lpg",
+    "value": 1.51,
+    "unit": "kg",
+    "source": "IPCC",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "transport-car-km",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "car_km",
+    "value": 0.192,
+    "unit": "km",
+    "source": "e-AMRIT",
+    "sourceUrl": "https://e-amrit.niti.gov.in/co2-calculator",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "transport-bike-km",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "bike_km",
+    "value": 0.08,
+    "unit": "km",
+    "source": "e-AMRIT",
+    "sourceUrl": "https://e-amrit.niti.gov.in/co2-calculator",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "transport-bus-km",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "bus_km",
+    "value": 0.089,
+    "unit": "km",
+    "source": "TERI",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "transport-metro-km",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "metro_km",
+    "value": 0.033,
+    "unit": "km",
+    "source": "TERI",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "transport-walk-km",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "walk_km",
+    "value": 0,
+    "unit": "km",
+    "source": "IPCC",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "transport-cycle-km",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "cycle_km",
+    "value": 0,
+    "unit": "km",
+    "source": "IPCC",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "delivery-quick-commerce",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "quick_commerce_delivery",
+    "value": 0.08,
+    "unit": "order",
+    "source": "TERI",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "delivery-food",
+    "region": "IN",
+    "scope": "SCOPE3",
+    "category": "food_delivery",
+    "value": 0.12,
+    "unit": "order",
+    "source": "TERI",
+    "sourceUrl": "https://ghg.ncmaindia.org/",
+    "validFrom": "2024-01-01T00:00:00.000Z"
+  }
+]

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "chips-small",
+    "category": "snacks_chips",
+    "label": "Chips (small pack)",
+    "orderTypes": "QUICK_COMMERCE",
+    "plasticGramsPerUnit": 8,
+    "plasticType": "MULTILAYER",
+    "co2ePerUnitKg": 0.05,
+    "source": "default_estimate"
+  },
+  {
+    "id": "milk-pouch",
+    "category": "dairy_milk",
+    "label": "Milk pouch (500ml)",
+    "orderTypes": "QUICK_COMMERCE",
+    "plasticGramsPerUnit": 6,
+    "plasticType": "LDPE",
+    "co2ePerUnitKg": 0.08,
+    "source": "default_estimate"
+  },
+  {
+    "id": "detergent",
+    "category": "household_detergent",
+    "label": "Detergent sachet/pouch",
+    "orderTypes": "QUICK_COMMERCE",
+    "plasticGramsPerUnit": 12,
+    "plasticType": "MULTILAYER",
+    "co2ePerUnitKg": 0.1,
+    "source": "default_estimate"
+  },
+  {
+    "id": "produce-bag",
+    "category": "produce",
+    "label": "Packaged produce",
+    "orderTypes": "QUICK_COMMERCE",
+    "plasticGramsPerUnit": 5,
+    "plasticType": "LDPE",
+    "co2ePerUnitKg": 0.03,
+    "source": "default_estimate"
+  },
+  {
+    "id": "beverage-bottle",
+    "category": "beverages",
+    "label": "Soft drink bottle (PET)",
+    "orderTypes": "QUICK_COMMERCE",
+    "plasticGramsPerUnit": 25,
+    "plasticType": "PET",
+    "co2ePerUnitKg": 0.15,
+    "source": "default_estimate"
+  },
+  {
+    "id": "snacks-biscuit",
+    "category": "snacks_biscuit",
+    "label": "Biscuit pack",
+    "orderTypes": "QUICK_COMMERCE",
+    "plasticGramsPerUnit": 4,
+    "plasticType": "MULTILAYER",
+    "co2ePerUnitKg": 0.04,
+    "source": "default_estimate"
+  },
+  {
+    "id": "food-main",
+    "category": "food_main",
+    "label": "Main dish (container)",
+    "orderTypes": "FOOD_DELIVERY",
+    "plasticGramsPerUnit": 35,
+    "plasticType": "PP",
+    "co2ePerUnitKg": 0.5,
+    "source": "default_estimate"
+  },
+  {
+    "id": "food-side",
+    "category": "food_side",
+    "label": "Side dish / curry",
+    "orderTypes": "FOOD_DELIVERY",
+    "plasticGramsPerUnit": 20,
+    "plasticType": "PP",
+    "co2ePerUnitKg": 0.3,
+    "source": "default_estimate"
+  },
+  {
+    "id": "food-beverage",
+    "category": "food_beverage",
+    "label": "Beverage (delivery)",
+    "orderTypes": "FOOD_DELIVERY",
+    "plasticGramsPerUnit": 15,
+    "plasticType": "PET",
+    "co2ePerUnitKg": 0.12,
+    "source": "default_estimate"
+  },
+  {
+    "id": "food-dessert",
+    "category": "food_dessert",
+    "label": "Dessert container",
+    "orderTypes": "FOOD_DELIVERY",
+    "plasticGramsPerUnit": 18,
+    "plasticType": "PP",
+    "co2ePerUnitKg": 0.25,
+    "source": "default_estimate"
+  }
+]

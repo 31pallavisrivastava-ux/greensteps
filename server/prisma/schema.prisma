@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  CNG
+  EV
+}
+
+enum TransportMode {
+  WALK
+  CYCLE
+  METRO
+  BUS
+  TRAIN
+  CAR
+  BIKE
+  TAXI
+  AUTO
+}
+
+enum TransportCategory {
+  PUBLIC
+  PRIVATE
+  ACTIVE
+}
+
+enum TripSource {
+  GPS
+  MANUAL
+}
+
+enum EnergySource {
+  MANUAL
+  OCR
+  API
+}
+
+enum GhgScope {
+  SCOPE1
+  SCOPE2
+  SCOPE3
+}
+
+enum DeliveryMerchant {
+  BLINKIT
+  ZEPTO
+  SWIGGY_INSTAMART
+  SWIGGY_FOOD
+  ZOMATO
+}
+
+enum OrderType {
+  QUICK_COMMERCE
+  FOOD_DELIVERY
+}
+
+enum OrderSource {
+  MANUAL
+  EMAIL
+  OCR
+}
+
+enum PlasticType {
+  PET
+  HDPE
+  LDPE
+  PP
+  MULTILAYER
+  MIXED
+}
+
+enum PlasticSource {
+  PURCHASE
+  DISPOSAL
+}
+
+enum DisposalMethod {
+  RECYCLED
+  LANDFILL
+  REUSED
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  passwordHash    String           @map("password_hash")
+  name            String?
+  homeLat         Float?
+  homeLng         Float?
+  workLat         Float?
+  workLng         Float?
+  state           String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  vehicles        Vehicle[]
+  trips           Trip[]
+  fuelPurchases   FuelPurchase[]
+  energyReadings  EnergyReading[]
+  deliveryOrders  DeliveryOrder[]
+  plasticEvents   PlasticEvent[]
+
+  @@map("users")
+}
+
+model Vehicle {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  label       String
+  fuelType    FuelType @map("fuel_type")
+  mileageKmpl Float?   @map("mileage_kmpl")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trips       Trip[]
+  fuelPurchases FuelPurchase[]
+
+  @@map("vehicles")
+}
+
+model Trip {
+  id                String             @id @default(uuid())
+  userId            String             @map("user_id")
+  startedAt         DateTime           @map("started_at")
+  endedAt           DateTime           @map("ended_at")
+  distanceKm        Float              @map("distance_km")
+  suggestedMode     TransportMode      @map("suggested_mode")
+  confirmedMode     TransportMode?     @map("confirmed_mode")
+  transportCategory TransportCategory? @map("transport_category")
+  routePolyline     String?            @map("route_polyline")
+  co2eKg            Float?             @map("co2e_kg")
+  fuelLitersEst     Float?             @map("fuel_liters_est")
+  vehicleId         String?            @map("vehicle_id")
+  isCommute         Boolean            @default(false) @map("is_commute")
+  source            TripSource
+  confidence        Float              @default(0.7)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle           Vehicle?           @relation(fields: [vehicleId], references: [id])
+
+  @@index([userId, startedAt])
+  @@map("trips")
+}
+
+model FuelPurchase {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  vehicleId   String?   @map("vehicle_id")
+  purchasedAt DateTime  @map("purchased_at")
+  liters      Float
+  fuelType    FuelType  @default(PETROL) @map("fuel_type")
+  amountInr   Float?    @map("amount_inr")
+  co2eKg      Float     @map("co2e_kg")
+  receiptUrl  String?   @map("receipt_url")
+  ocrRaw      String?   @map("ocr_raw")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id])
+
+  @@map("fuel_purchases")
+}
+
+model EnergyReading {
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id")
+  periodStart    DateTime     @map("period_start")
+  periodEnd      DateTime     @map("period_end")
+  kwh            Float
+  solarOffsetKwh Float        @default(0) @map("solar_offset_kwh")
+  lpgKg          Float        @default(0) @map("lpg_kg")
+  co2eKg         Float        @map("co2e_kg")
+  source         EnergySource @default(MANUAL)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("energy_readings")
+}
+
+model EmissionFactor {
+  id        String   @id
+  region    String
+  scope     GhgScope
+  category  String
+  value     Float
+  unit      String
+  source    String
+  sourceUrl String?  @map("source_url")
+  validFrom DateTime @map("valid_from")
+
+  @@map("emission_factors")
+}
+
+model PackagingCatalogItem {
+  id                  String      @id
+  category            String
+  label               String
+  orderTypes          String
+  plasticGramsPerUnit Float       @map("plastic_grams_per_unit")
+  plasticType         PlasticType @map("plastic_type")
+  co2ePerUnitKg       Float?      @map("co2e_per_unit_kg")
+  source              String
+
+  @@map("packaging_catalog")
+}
+
+model MerchantPackagingDefault {
+  id                    String           @id
+  merchant              DeliveryMerchant
+  orderType             OrderType        @map("order_type")
+  defaultBagGrams       Float            @map("default_bag_grams")
+  defaultContainerGrams Float            @default(0) @map("default_container_grams")
+  defaultCutleryGrams   Float            @default(0) @map("default_cutlery_grams")
+  deliveryCo2eKgDefault Float            @map("delivery_co2e_kg_default")
+
+  @@map("merchant_packaging_defaults")
+}
+
+model DeliveryOrder {
+  id             String           @id @default(uuid())
+  userId         String           @map("user_id")
+  merchant       DeliveryMerchant
+  orderType      OrderType        @map("order_type")
+  orderedAt      DateTime         @map("ordered_at")
+  itemCount      Int              @map("item_count")
+  amountInr      Float?           @map("amount_inr")
+  deliveryCo2eKg Float            @map("delivery_co2e_kg")
+  plasticGrams   Float            @map("plastic_grams")
+  packagingGrams Float            @map("packaging_grams")
+  source         OrderSource      @default(MANUAL)
+  rawPayload     String?          @map("raw_payload")
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lineItems      OrderLineItem[]
+  plasticEvents  PlasticEvent[]
+
+  @@index([userId, orderedAt])
+  @@map("delivery_orders")
+}
+
+model OrderLineItem {
+  id           String        @id @default(uuid())
+  orderId      String        @map("order_id")
+  catalogId    String?       @map("catalog_id")
+  label        String
+  quantity     Int
+  plasticGrams Float         @map("plastic_grams")
+  co2eKg       Float?        @map("co2e_kg")
+  order        DeliveryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_line_items")
+}
+
+model PlasticEvent {
+  id             String          @id @default(uuid())
+  userId         String          @map("user_id")
+  occurredAt     DateTime        @map("occurred_at")
+  source         PlasticSource
+  plasticType    PlasticType     @map("plastic_type")
+  grams          Float
+  disposalMethod DisposalMethod? @map("disposal_method")
+  orderId        String?         @map("order_id")
+  notes          String?
+  confidence     Float           @default(0.8)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order          DeliveryOrder?  @relation(fields: [orderId], references: [id])
+
+  @@index([userId, occurredAt])
+  @@map("plastic_events")
+}
+
+model OfflineQueueItem {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  payload   String
+  createdAt DateTime @default(now()) @map("created_at")
+  synced    Boolean  @default(false)
+
+  @@map("offline_queue")
+}
