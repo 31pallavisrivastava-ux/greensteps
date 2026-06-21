@@ -12,7 +12,7 @@ Emission factors use **CEA Grid V21** (0.7117 kg CO₂/kWh), IPCC fuel factors, 
 
 | Requirement | Status |
 |-------------|--------|
-| **Public GitHub repository** | https://github.com/31pallavisrivastava-ux/greensteps |
+| **Public GitHub repository** | https://github.com/31pallavisrivastava-ux/greensteps ✅ **Public** (verified) |
 | **Single branch** | `main` only |
 | **Repository size** | ~2.5 MB tracked (under 10 MB limit; `node_modules` not committed) |
 | **Complete project code** | Monorepo: `client/`, `server/`, `shared/` |
@@ -25,6 +25,8 @@ Emission factors use **CEA Grid V21** (0.7117 kg CO₂/kWh), IPCC fuel factors, 
 **Persona:** Urban Indian individuals and families who want to understand and lower their daily carbon footprint from commute, electricity, quick-commerce deliveries, and plastic — without needing expert climate knowledge.
 
 This vertical matches the challenge expectation of a **smart, dynamic assistant** that makes **logical decisions from user context** and delivers **practical, real-world usability**.
+
+> **Note:** The assistant uses a **priority rules engine** (deterministic coach), not a generative AI chatbot — actions are chosen from the user's profile, logs, and weekly footprint mix.
 
 ### Approach and logic
 
@@ -85,7 +87,14 @@ npm run db:push && npm run db:seed && npm run dev
 
 Demo: `demo@carbon.local` / `demo1234` → http://localhost:5173
 
-Run tests: `npm test`
+Run tests: `npm test` (unit + API integration; uses isolated `test-integration.db`)
+
+| Test suite | What it validates |
+|------------|-------------------|
+| `todayAction.test.js` | Assistant decision priority rules |
+| `utilityBillParser.test.js` | Indian electricity bill OCR parsing |
+| `emissionsBudget.test.js` | Science-based weekly fair-share constant |
+| `api.integration.test.js` | Health, auth, `/insights/personal`, family create/join |
 
 ### Assumptions
 
@@ -109,7 +118,7 @@ Run tests: `npm test`
 | **High** | Code quality | Monorepo, shared types, modular engines, consistent UI patterns |
 | **Medium** | Security | JWT auth, bcrypt passwords, Zod validation, `.env` for secrets |
 | **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
-| **Medium** | Testing | `npm test` — unit tests for assistant logic and bill OCR parser |
+| **Medium** | Testing | `npm test` — 13 tests: assistant rules, OCR, budget constant, API auth/personal/family |
 | **Medium** | Accessibility | Skip links, focus rings, dialog trap, 44px targets, page titles |
 | **Low** | Polish | Block UI, screenshots, WhatsApp share cards, 12-week charts |
 
