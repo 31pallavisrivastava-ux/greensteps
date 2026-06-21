@@ -122,10 +122,10 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 | **High** | Smart dynamic assistant | Priority rules engine, agentic Ollama coach with tool calls, context checklists, AQI nudges |
 | **High** | Context-based decisions | Onboarding profile + weekly footprint drive daily action |
 | **High** | Real-world usability | India merchants, CEA grid, mobile PWA, demo account |
-| **High** | Code quality | Monorepo, shared types, modular engines, consistent UI patterns |
+| **High** | Code quality | Shared types, Zod validation, `asyncHandler` routes, extracted engines, `ApiError` client layer, CI build + tests |
 | **Medium** | Security | Helmet headers, auth rate limiting, JWT + bcrypt, Zod validation, production secret guard |
 | **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
-| **Medium** | Testing | `npm test` — **41 tests** across 11 suites; GitHub Actions CI on every push |
+| **Medium** | Testing | `npm test` — **46 tests** across 13 suites; GitHub Actions CI (tests + build) on every push |
 | **Medium** | Accessibility | Skip links, focus rings, dialog trap, 44px targets, page titles |
 | **Low** | Polish | Block UI, screenshots, WhatsApp share cards, 12-week charts |
 
@@ -394,8 +394,16 @@ Interactive checklists for where you are today:
 - **Helmet** — HTTP security headers on all responses
 - **Rate limiting** — 30 auth attempts per 15 min per IP on `/api/auth/*`
 - **JWT** — signed tokens; production refuses weak/default `JWT_SECRET`
-- **Validation** — Zod schemas on auth, coach, and write endpoints
+- **Validation** — Zod schemas on auth, coach, trips, and write endpoints
 - **Passwords** — bcrypt hashing (cost factor 10)
+
+### Code quality
+
+- **Shared contracts** — `@carbon/shared` enums (e.g. `TransportMode`) reused in Zod schemas and UI
+- **HTTP helpers** — `asyncHandler`, global Zod/400 error handler, typed `parseOptionalDate`
+- **DRY utilities** — `generateUniqueJoinCode` for family/class groups; `buildWeeklyTips` extracted from routes
+- **Client API layer** — `ApiError` with HTTP status + `getErrorMessage()` for consistent UI errors
+- **CI** — GitHub Actions runs `npm test` and `npm run build` on every push
 
 ## Family tracking
 
@@ -458,8 +466,9 @@ carbon-footprint-pwa/
 ├── client/                 # React PWA
 │   ├── src/pages/          # Home, Log, Guide, Impact, Family, Coach, Settings, …
 │   ├── src/components/     # UI, CoachFab, engage, PersonalFootprintCard, CityPicker
-│   └── src/lib/            # API, auth, share cards
+│   └── src/lib/            # API (ApiError), auth, usePageLoad, share cards
 ├── server/
+│   ├── src/lib/            # http helpers, joinCode, Zod schemas
 │   ├── src/modules/        # emissions, rewards, guide, engage, family, insights, coach
 │   ├── src/routes/         # Express routers (incl. coach)
 │   ├── data/               # factors, checklists, challenges, cities
@@ -473,7 +482,7 @@ carbon-footprint-pwa/
 ```bash
 npm run dev          # client :5173 + server :3001
 npm run build        # shared → server → client
-npm run test         # 41 tests: unit + API integration (CI on push)
+npm run test         # 46 tests: unit + API integration (CI on push)
 npm run db:push      # apply Prisma schema (required after model changes)
 npm run db:seed      # emission factors, merchants, demo user
 ```

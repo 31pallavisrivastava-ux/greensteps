@@ -1,7 +1,12 @@
 import { Router } from 'express'
-import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
+import { asyncHandler, parseOptionalDate } from '../lib/http.js'
+import {
+  confirmTripSchema,
+  manualTripSchema,
+  tripDraftSchema,
+} from '../lib/schemas/trip.js'
 import {
   computeTripEmissions,
   inferModeFromPoints,
@@ -29,38 +34,26 @@ function mapTrip(t) {
   }
 }
 
-tripsRouter.get('/', async (req, res) => {
-  const from = req.query.from ? new Date(req.query.from) : undefined
-  const to = req.query.to ? new Date(req.query.to) : undefined
-  const trips = await prisma.trip.findMany({
-    where: {
-      userId: req.userId,
-      ...(from && to ? { startedAt: { gte: from, lte: to } } : {}),
-    },
-    orderBy: { startedAt: 'desc' },
+tripsRouter.get(
+  '/',
+  asyncHandler(async (req, res) => {
+    const from = parseOptionalDate(req.query.from, 'from')
+    const to = parseOptionalDate(req.query.to, 'to')
+    const trips = await prisma.trip.findMany({
+      where: {
+        userId: req.userId,
+        ...(from && to ? { startedAt: { gte: from, lte: to } } : {}),
+      },
+      orderBy: { startedAt: 'desc' },
+    })
+    res.json(trips.map(mapTrip))
   })
-  res.json(trips.map(mapTrip))
-})
+)
 
-tripsRouter.post('/draft', async (req, res) => {
-  try {
-    const body = z
-      .object({
-        points: z.array(
-          z.object({
-            lat: z.number(),
-            lng: z.number(),
-            timestamp: z.number(),
-            speedKmh: z.number().optional(),
-          })
-        ),
-        startedAt: z.string(),
-        endedAt: z.string(),
-        distanceKm: z.number(),
-        isCommute: z.boolean().optional(),
-      })
-      .parse(req.body)
-
+tripsRouter.post(
+  '/draft',
+  asyncHandler(async (req, res) => {
+    const body = tripDraftSchema.parse(req.body)
     const { mode, confidence } = inferModeFromPoints(body.points, body.distanceKm)
     const trip = await prisma.trip.create({
       data: {
@@ -76,25 +69,13 @@ tripsRouter.post('/draft', async (req, res) => {
       },
     })
     res.status(201).json(mapTrip(trip))
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    res.status(500).json({ error: 'Failed to create trip draft' })
-  }
-})
+  })
+)
 
-tripsRouter.post('/manual', async (req, res) => {
-  try {
-    const body = z
-      .object({
-        startedAt: z.string(),
-        endedAt: z.string(),
-        distanceKm: z.number(),
-        confirmedMode: z.string(),
-        isCommute: z.boolean().optional(),
-        vehicleId: z.string().optional(),
-      })
-      .parse(req.body)
-
+tripsRouter.post(
+  '/manual',
+  asyncHandler(async (req, res) => {
+    const body = manualTripSchema.parse(req.body)
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     const vehicle = body.vehicleId
       ? await prisma.vehicle.findFirst({ where: { id: body.vehicleId, userId: req.userId } })
@@ -131,22 +112,13 @@ tripsRouter.post('/manual', async (req, res) => {
     })
     const reward = computeTripReward(trip)
     res.status(201).json({ ...mapTrip(trip), reward })
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    res.status(500).json({ error: 'Failed to create manual trip' })
-  }
-})
+  })
+)
 
-tripsRouter.patch('/:id/confirm', async (req, res) => {
-  try {
-    const body = z
-      .object({
-        confirmedMode: z.string(),
-        vehicleId: z.string().optional(),
-        isCommute: z.boolean().optional(),
-      })
-      .parse(req.body)
-
+tripsRouter.patch(
+  '/:id/confirm',
+  asyncHandler(async (req, res) => {
+    const body = confirmTripSchema.parse(req.body)
     const trip = await prisma.trip.findFirst({
       where: { id: req.params.id, userId: req.userId },
     })
@@ -178,8 +150,5 @@ tripsRouter.patch('/:id/confirm', async (req, res) => {
     })
     const reward = computeTripReward(updated)
     res.json({ ...mapTrip(updated), reward })
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    res.status(500).json({ error: 'Failed to confirm trip' })
-  }
-})
+  })
+)

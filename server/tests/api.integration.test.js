@@ -225,7 +225,22 @@ describe('API integration', () => {
     assert.ok(res.headers.get('x-frame-options'))
   })
 
-  it('POST /api/trips/draft rejects invalid payload', async () => {
+  it('POST /api/trips/manual rejects invalid transport mode', async () => {
+    const { token } = await registerUser(`trip-mode-${Date.now()}@test.local`)
+    const { status } = await api('/api/trips/manual', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        distanceKm: 5,
+        confirmedMode: 'ROCKET',
+      }),
+    })
+    assert.equal(status, 400)
+  })
+
+  it('POST /api/trips/draft rejects empty GPS points', async () => {
     const { token } = await registerUser(`trips-${Date.now()}@test.local`)
     const { status } = await api('/api/trips/draft', {
       method: 'POST',

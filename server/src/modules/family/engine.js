@@ -1,14 +1,10 @@
-import { randomBytes } from 'crypto'
 import {
   aggregateFootprint,
   aggregatePlastic,
 } from '../emissions/engine.js'
 import { computeWeeklyRewards } from '../rewards/engine.js'
 import { WEEKLY_FAIR_SHARE_KG } from '../engage/engine.js'
-
-function generateJoinCode() {
-  return randomBytes(3).toString('hex').toUpperCase()
-}
+import { generateUniqueJoinCode } from '../../lib/joinCode.js'
 
 async function memberWeeklyFootprint(prisma, userId, nickname) {
   const weekAgo = new Date()
@@ -53,12 +49,9 @@ async function memberWeeklyFootprint(prisma, userId, nickname) {
 }
 
 export async function createFamilyGroup(prisma, userId, name) {
-  let joinCode = generateJoinCode()
-  for (let i = 0; i < 5; i++) {
-    const existing = await prisma.familyGroup.findUnique({ where: { joinCode } })
-    if (!existing) break
-    joinCode = generateJoinCode()
-  }
+  const joinCode = await generateUniqueJoinCode((code) =>
+    prisma.familyGroup.findUnique({ where: { joinCode: code } })
+  )
 
   const family = await prisma.familyGroup.create({
     data: {

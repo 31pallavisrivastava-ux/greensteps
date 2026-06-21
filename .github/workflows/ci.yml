@@ -28,3 +28,6 @@ jobs:
         env:
           JWT_SECRET: ci-test-secret
           LLM_AGENT_ENABLED: 'false'
+
+      - name: Typecheck and build client
+        run: npm run build

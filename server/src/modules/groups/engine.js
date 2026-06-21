@@ -1,18 +1,11 @@
-import { randomBytes } from 'crypto'
 import { aggregateFootprint, aggregatePlastic } from '../emissions/engine.js'
 import { computeWeeklyRewards } from '../rewards/engine.js'
-
-function generateJoinCode() {
-  return randomBytes(3).toString('hex').toUpperCase()
-}
+import { generateUniqueJoinCode } from '../../lib/joinCode.js'
 
 export async function createClassGroup(prisma, userId, name) {
-  let joinCode = generateJoinCode()
-  for (let i = 0; i < 5; i++) {
-    const existing = await prisma.classGroup.findUnique({ where: { joinCode } })
-    if (!existing) break
-    joinCode = generateJoinCode()
-  }
+  const joinCode = await generateUniqueJoinCode((code) =>
+    prisma.classGroup.findUnique({ where: { joinCode: code } })
+  )
 
   const group = await prisma.classGroup.create({
     data: {

@@ -3,6 +3,7 @@ import cors from 'cors'
 import morgan from 'morgan'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { z } from 'zod'
 import { authRouter } from './routes/auth.js'
 import { tripsRouter } from './routes/trips.js'
 import { fuelRouter } from './routes/fuel.js'
@@ -19,6 +20,7 @@ import { familyRouter } from './routes/family.js'
 import { coachRouter } from './routes/coach.js'
 import { prisma } from './lib/prisma.js'
 import { assertProductionSecrets, authRateLimiter, securityMiddleware } from './middleware/security.js'
+import { isBadRequestError, zodErrorBody } from './lib/http.js'
 
 export function createApp() {
   assertProductionSecrets()
@@ -71,6 +73,12 @@ export function createApp() {
   }
 
   app.use((err, _req, res, _next) => {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json(zodErrorBody(err))
+    }
+    if (isBadRequestError(err)) {
+      return res.status(400).json({ error: err.message })
+    }
     console.error(err)
     res.status(500).json({ error: 'Internal server error' })
   })
