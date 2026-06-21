@@ -5,20 +5,9 @@ import { api } from '../lib/api'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
 import { usePageLoad } from '../lib/usePageLoad'
 import { useSubmit } from '../lib/useSubmit'
-import type { ActionReward, BillOcrResult } from '@carbon/shared'
+import type { ActionReward, BillOcrResult, EnergyReadingDto } from '@carbon/shared'
 import { CelebrationBanner } from '../components/rewards'
 import { PageHeader, EmptyState, LoadingScreen } from '../components/ui'
-
-interface EnergyReading {
-  id: string
-  periodStart: string
-  periodEnd: string
-  kwh: number
-  solarOffsetKwh: number
-  lpgKg: number
-  co2eKg: number
-  source?: string
-}
 
 async function ocrImageFile(file: File): Promise<string> {
   const { createWorker } = await import('tesseract.js')
@@ -36,7 +25,7 @@ export function EnergyPage() {
   const scanRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { data: readings, loading, error: loadError, reload } = usePageLoad(() =>
-    api<EnergyReading[]>('/energy')
+    api<EnergyReadingDto[]>('/energy')
   )
   const [form, setForm] = useState({
     kwh: 150,
@@ -74,7 +63,7 @@ export function EnergyPage() {
     setOcrLoading(true)
     setOcrError(null)
     try {
-      const parsed = await api<BillOcrResult & { reward?: ActionReward; reading?: EnergyReading }>(
+      const parsed = await api<BillOcrResult & { reward?: ActionReward; reading?: EnergyReadingDto }>(
         '/energy/ocr',
         {
           method: 'POST',

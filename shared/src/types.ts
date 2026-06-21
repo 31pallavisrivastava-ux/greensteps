@@ -501,3 +501,33 @@ export interface VehicleDto {
   fuelType: FuelType
   mileageKmpl: number | null
 }
+
+export interface FuelPurchaseDto {
+  id: string
+  purchasedAt: string
+  liters: number
+  co2eKg: number
+  fuelType: FuelType
+  amountInr: number | null
+}
+
+export interface EnergyReadingDto {
+  id: string
+  periodStart: string
+  periodEnd: string
+  kwh: number
+  solarOffsetKwh: number
+  lpgKg: number
+  co2eKg: number
+  source?: string
+}
+
+export interface DeliveryOrderDto {
+  id: string
+  merchant: DeliveryMerchant
+  orderedAt: string
+  plasticGrams: number
+  deliveryCo2eKg: number
+  lineItems: Array<{ label: string; quantity: number }>
+}
+

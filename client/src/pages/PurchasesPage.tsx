@@ -1,23 +1,12 @@
 import { useState } from 'react'
 import { MERCHANTS, DeliveryMerchant } from '@carbon/shared'
-import type { PackagingCatalogItemDto } from '@carbon/shared'
+import type { PackagingCatalogItemDto, DeliveryOrderDto, OrderLineItemInput } from '@carbon/shared'
 import { Package, Plus, ShoppingBag } from 'lucide-react'
 import { api } from '../lib/api'
 import { usePageLoad } from '../lib/usePageLoad'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
 import { useSubmit } from '../lib/useSubmit'
 import { PageHeader, EmptyState } from '../components/ui'
-
-interface LineItem { catalogId?: string; label: string; quantity: number }
-
-interface Order {
-  id: string
-  merchant: string
-  orderedAt: string
-  plasticGrams: number
-  deliveryCo2eKg: number
-  lineItems: Array<{ label: string; quantity: number }>
-}
 
 const MERCHANT_ICONS: Record<string, string> = {
   BLINKIT: 'bg-yellow-100 text-yellow-800',
@@ -29,10 +18,10 @@ const MERCHANT_ICONS: Record<string, string> = {
 
 export function PurchasesPage() {
   const [merchant, setMerchant] = useState<DeliveryMerchant>(DeliveryMerchant.BLINKIT)
-  const [cart, setCart] = useState<LineItem[]>([])
+  const [cart, setCart] = useState<OrderLineItemInput[]>([])
   const { saved, markSaved } = useSaveFeedback()
   const { submitting, error: submitError, run: runSubmit } = useSubmit()
-  const { data: orders, reload: loadOrders } = usePageLoad(() => api<Order[]>('/purchases'))
+  const { data: orders, reload: loadOrders } = usePageLoad(() => api<DeliveryOrderDto[]>('/purchases'))
 
   const merchantInfo = MERCHANTS.find((m) => m.merchant === merchant)!
   const orderType = merchantInfo.orderType

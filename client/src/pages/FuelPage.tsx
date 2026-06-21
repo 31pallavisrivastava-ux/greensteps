@@ -2,23 +2,15 @@ import { useState } from 'react'
 import { Fuel, IndianRupee } from 'lucide-react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import type { FuelPurchaseDto } from '@carbon/shared'
 import { usePageLoad } from '../lib/usePageLoad'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
 import { useSubmit } from '../lib/useSubmit'
 import { PageHeader, EmptyState, LoadingScreen } from '../components/ui'
 
-interface FuelPurchase {
-  id: string
-  purchasedAt: string
-  liters: number
-  co2eKg: number
-  fuelType: string
-  amountInr: number | null
-}
-
 export function FuelPage() {
   const { user } = useAuth()
-  const { data: purchases, loading, error, reload } = usePageLoad(() => api<FuelPurchase[]>('/fuel'))
+  const { data: purchases, loading, error, reload } = usePageLoad(() => api<FuelPurchaseDto[]>('/fuel'))
   const { saved, markSaved } = useSaveFeedback()
   const { submitting, error: submitError, run: runSubmit } = useSubmit()
   const [form, setForm] = useState({
