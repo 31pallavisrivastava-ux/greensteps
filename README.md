@@ -1,39 +1,64 @@
 # GreenSteps
 
+[![GitHub](https://img.shields.io/badge/GitHub-greensteps-0f4c3a?style=flat&logo=github)](https://github.com/31pallavisrivastava-ux/greensteps)
+
 **GreenSteps** is a GHG Protocol–aligned personal carbon footprint PWA built for everyday life in India — commute, electricity, quick-commerce deliveries (Blinkit, Zepto, Swiggy, Zomato), plastic waste, and context-aware sustainability checklists.
 
 Emission factors use **CEA Grid V21** (0.7117 kg CO₂/kWh), IPCC fuel factors, and India-specific delivery benchmarks, aligned with [NCMA India GHG Protocol](https://ghg.ncmaindia.org/) guidance.
+
+## Table of contents
+
+- [Screenshots](#screenshots)
+- [Stack](#stack)
+- [Quick start](#quick-start)
+- [App navigation](#app-navigation)
+- [Features](#features)
+- [Family tracking](#family-tracking)
+- [API overview](#api-overview)
+- [Project structure](#project-structure)
+- [Scripts](#scripts)
+- [Configuration](#configuration)
+- [Troubleshooting](#troubleshooting)
+- [Differentiation](#differentiation)
+- [License](#license)
 
 ## Screenshots
 
 | Sign in | Home |
 |---------|------|
-| ![Sign in](docs/screenshots/login.png) | ![Home dashboard](docs/screenshots/home.png) |
+| ![Sign in](docs/screenshots/login.png) | ![Home dashboard with personal footprint card](docs/screenshots/home.png) |
 
 | Log hub | Guide checklists |
 |---------|------------------|
-| ![Log activities](docs/screenshots/log.png) | ![Context guide](docs/screenshots/guide.png) |
+| ![Log activities](docs/screenshots/log.png) | ![Context guide — beach checklist](docs/screenshots/guide.png) |
 
 | Impact (personal) | Impact (family) |
 |-------------------|-----------------|
-| ![Impact report with 12-week trend](docs/screenshots/impact.png) | ![Family toggle on Impact](docs/screenshots/impact-family.png) |
+| ![Impact report with 12-week trend](docs/screenshots/impact.png) | ![Family toggle on Impact tab](docs/screenshots/impact-family.png) |
 
-| Family tracking | Settings |
-|-----------------|----------|
-| ![Create or join a household](docs/screenshots/family.png) | ![City and preference blocks](docs/screenshots/settings.png) |
+| Personal footprint | Family household |
+|--------------------|------------------|
+| ![Personal CO₂ breakdown](docs/screenshots/family-personal.png) | ![Create or join a household](docs/screenshots/family.png) |
+
+| Settings |
+|----------|
+| ![City picker and preference blocks](docs/screenshots/settings.png) |
 
 ## Stack
 
 | Layer | Tech |
 |-------|------|
-| **Client** | React 19, Vite, Tailwind CSS 4, Recharts, PWA (Workbox) |
+| **Client** | React 19, Vite, Tailwind CSS 4, Recharts, Tesseract.js (bill OCR), PWA (Workbox) |
 | **Server** | Express 5, Prisma, SQLite (dev) |
-| **Shared** | TypeScript types, enums, merchant packaging defaults |
+| **Shared** | TypeScript types, enums, merchant packaging defaults, Indian city list |
+
+Monorepo workspaces: `client/`, `server/`, `shared/`.
 
 ## Quick start
 
 ```bash
-cd carbon-footprint-pwa
+git clone https://github.com/31pallavisrivastava-ux/greensteps.git
+cd greensteps
 npm install
 cp server/.env.example server/.env
 npm run db:push
@@ -49,7 +74,12 @@ npm run dev
 
 **Demo login:** `demo@carbon.local` / `demo1234`
 
-> **Tip:** After pulling new code, restart the API if routes return 404. An old process may still be bound to port 3001. Run `lsof -i :3001`, kill the PID, then `npm run dev` again. Check health includes `"routes": ["insights/personal", "insights/history", "family"]`.
+Verify the API is on the latest build:
+
+```bash
+curl http://localhost:3001/api/health
+# → { "status": "ok", "routes": ["insights/personal", "insights/history", "family"], ... }
+```
 
 ## App navigation
 
@@ -62,7 +92,15 @@ Four bottom tabs keep the UI focused:
 | **Guide** | Context checklists (beach, school, home, travel, market) + tips |
 | **Impact** | Personal vs family toggle, 12-week trend, breakdown, challenges, share |
 
-Additional routes: `/family` (household tracking), `/settings`, `/class` (school leaderboard), `/onboarding` (first-run setup).
+Additional routes:
+
+| Route | Purpose |
+|-------|---------|
+| `/family` | Personal vs household footprint; create/join family groups |
+| `/settings` | City, transport preference, top concern |
+| `/onboarding` | First-run setup (city → transport → concern) |
+| `/class` | School leaderboard (create/join with code) |
+| `/trips`, `/fuel`, `/energy`, … | Reachable from Log |
 
 ## Features
 
@@ -113,6 +151,30 @@ Interactive checklists for where you are today:
 - ✈️ **Travel** — train over taxi, refill bottle
 - 🛒 **Market** — cloth bag, local produce, bulk packs
 
+### UI & accessibility
+
+- **Block-style UI** — neo-brutalist cards with thick borders and offset shadows
+- **Keyboard & screen reader** — skip links, focus rings, dialog trap, `role="alert"` for errors
+- **Touch targets** — 44px minimum on primary actions
+
+## Family tracking
+
+1. Open **Home** → tap **Track with family →**, or go to `/family`.
+2. Tap **Create family**, name your household, and copy the join code.
+3. Share the code — each member signs up or logs in on their device and taps **Join**.
+4. Everyone logs their own trips, fuel, energy, and orders.
+5. View combined totals on **Impact → Family** or the full breakdown on `/family`.
+
+**API flow:**
+
+```
+POST /api/family              { "name": "Sharma household" }
+POST /api/family/join         { "joinCode": "ABC123" }
+GET  /api/family              → list your households
+GET  /api/family/:id/dashboard → household + per-member weekly CO₂
+GET  /api/insights/personal   → your individual weekly CO₂
+```
+
 ## API overview
 
 ```
@@ -123,6 +185,7 @@ PATCH /api/users/me              # city, onboarding, preferences
 
 GET  /api/trips
 POST /api/trips/draft | /:id/confirm
+POST /api/fuel | /api/energy | /api/purchases/orders | /api/plastic
 
 GET  /api/insights/weekly
 GET  /api/insights/personal      # personal footprint summary
@@ -181,7 +244,19 @@ JWT_SECRET="change-me-in-production"
 PORT=3001
 ```
 
-Set your city via Settings or `PATCH /api/users/me` with `{ "city": "Mumbai" }` for AQI (Delhi, Mumbai, Bengaluru, and 9 other Indian cities).
+Set your city via Settings or `PATCH /api/users/me` with `{ "city": "Mumbai" }` for AQI.
+
+Supported cities: Delhi, Mumbai, Bengaluru, Hyderabad, Chennai, Kolkata, Pune, Ahmedabad, Jaipur, Lucknow, Noida, Gurugram.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `404` on `/api/family`, `/api/insights/personal`, or `/api/insights/history` | Old API still on port 3001. Run `lsof -i :3001`, kill the PID, then `npm run dev`. |
+| Health check missing `family` in routes | Same as above — restart the server after `git pull`. |
+| Home loads but personal/family cards empty | Optional endpoints failed; core app still works. Restart API and hard-refresh (Cmd+Shift+R). |
+| PWA shows stale errors | DevTools → Application → Service Workers → Unregister, then reload. |
+| Schema errors after pull | Run `npm run db:push` then `npm run db:seed`. |
 
 ## Differentiation
 
