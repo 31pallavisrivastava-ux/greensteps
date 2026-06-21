@@ -6,11 +6,11 @@ services:
     plan: free
     buildCommand: >-
       npm install &&
-      npm run build &&
       npm run db:generate -w server &&
+      npm run build &&
       npm run db:push -w server &&
       npm run db:seed -w server
-    startCommand: npm start
+    startCommand: npm run db:generate -w server && npm start
     envVars:
       - key: NODE_ENV
         value: production

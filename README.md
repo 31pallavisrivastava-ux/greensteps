@@ -486,6 +486,7 @@ Supported cities: Delhi, Mumbai, Bengaluru, Hyderabad, Chennai, Kolkata, Pune, A
 | Schema errors after pull | Run `npm run db:push` then `npm run db:seed`. |
 | Coach always offline / rules-only replies | Install [Ollama](https://ollama.com), run `ollama pull llama3.1:8b`, restart server. Check `GET /api/coach/status`. |
 | **Ask AI** button overlaps content | Hard-refresh after pull — footer stacks FAB above nav with extra scroll padding. |
+| Render: `@prisma/client did not initialize` | Pull latest — `prisma` is a production dep and `prisma generate` runs on build + start. Redeploy. |
 
 ## Differentiation
 
