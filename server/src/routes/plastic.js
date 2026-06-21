@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js'
-import { authRouter, route, withBody, created } from '../lib/router.js'
+import { authRouter, route, withBody, withQuery, created } from '../lib/router.js'
 import { plasticDisposalSchema } from '../lib/schemas/plastic.js'
+import { periodQuerySchema } from '../lib/schemas/queries.js'
 import { aggregatePlastic } from '../modules/emissions/engine.js'
 import { computePlasticReward } from '../modules/rewards/engine.js'
 
@@ -28,8 +29,8 @@ plasticRouter.post(
 
 plasticRouter.get(
   '/summary',
-  route(async (req, res) => {
-    const period = req.query.period === 'month' ? 'month' : 'week'
+  ...withQuery(periodQuerySchema, async (req, res) => {
+    const { period } = req.validatedQuery
     res.json(await aggregatePlastic(prisma, req.userId, period))
   })
 )

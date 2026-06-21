@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { TransportMode } from '@carbon/shared'
+import { isoDateString } from './primitives.js'
 
 /** Shared Zod schema for trip mode confirmation. */
 export const transportModeSchema = z.nativeEnum(TransportMode)
@@ -15,15 +16,15 @@ export const tripDraftSchema = z.object({
       })
     )
     .min(2, 'At least two GPS points required'),
-  startedAt: z.string(),
-  endedAt: z.string(),
+  startedAt: isoDateString,
+  endedAt: isoDateString,
   distanceKm: z.number().positive(),
   isCommute: z.boolean().optional(),
 })
 
 export const manualTripSchema = z.object({
-  startedAt: z.string(),
-  endedAt: z.string(),
+  startedAt: isoDateString,
+  endedAt: isoDateString,
   distanceKm: z.number().positive(),
   confirmedMode: transportModeSchema,
   isCommute: z.boolean().optional(),

@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js'
 import { authRouter, route, withBody, created } from '../lib/router.js'
 import { offlineQueueSchema } from '../lib/schemas/offline.js'
+import { createTripFromDraft } from '../lib/tripDraft.js'
 
 export const offlineRouter = authRouter()
 
@@ -45,21 +46,7 @@ offlineRouter.post(
       try {
         const payload = JSON.parse(item.payload)
         if (item.type === 'trip_draft') {
-          const { inferModeFromPoints } = await import('../modules/emissions/engine.js')
-          const { mode, confidence } = inferModeFromPoints(payload.points, payload.distanceKm)
-          await prisma.trip.create({
-            data: {
-              userId: req.userId,
-              startedAt: new Date(payload.startedAt),
-              endedAt: new Date(payload.endedAt),
-              distanceKm: payload.distanceKm,
-              suggestedMode: mode,
-              isCommute: payload.isCommute ?? false,
-              source: 'GPS',
-              confidence,
-              routePolyline: JSON.stringify(payload.points),
-            },
-          })
+          await createTripFromDraft(prisma, req.userId, payload)
         }
         await prisma.offlineQueueItem.update({
           where: { id: item.id },

@@ -1,8 +1,9 @@
 import { MERCHANTS, getMerchantInfo } from '@carbon/shared'
 import { prisma } from '../lib/prisma.js'
 import { parseOptionalDate } from '../lib/http.js'
-import { authRouter, route, withBody, created, notImplemented } from '../lib/router.js'
+import { authRouter, route, withBody, created, notImplemented, withQuery } from '../lib/router.js'
 import { deliveryOrderSchema } from '../lib/schemas/purchases.js'
+import { merchantQuerySchema } from '../lib/schemas/queries.js'
 import { computeOrderEmissions } from '../modules/emissions/engine.js'
 
 export const purchasesRouter = authRouter()
@@ -110,11 +111,11 @@ purchasesRouter.post(
 
 purchasesRouter.post(
   '/ocr',
-  route((req, res) => {
+  ...withQuery(merchantQuerySchema, (req, res) => {
     res.status(501).json({
       error: 'Not implemented yet',
       message: 'Phase 2: upload order screenshot with ?merchant=BLINKIT',
-      merchant: req.query.merchant,
+      merchant: req.validatedQuery.merchant,
       stub: true,
     })
   })

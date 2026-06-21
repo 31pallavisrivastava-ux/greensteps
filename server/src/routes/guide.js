@@ -11,6 +11,7 @@ import {
 } from '../modules/guide/engine.js'
 import { aggregateFootprint, aggregatePlastic } from '../modules/emissions/engine.js'
 import { computeWeeklyRewards } from '../modules/rewards/engine.js'
+import { fetchWeeklyActivity } from '../lib/weeklyActivity.js'
 
 export const guideRouter = authRouter()
 
@@ -81,13 +82,8 @@ guideRouter.get(
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     const footprint = await aggregateFootprint(prisma, req.userId, 'week')
     const plastic = await aggregatePlastic(prisma, req.userId, 'week')
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
-    const trips = await prisma.trip.findMany({
-      where: { userId: req.userId, startedAt: { gte: weekAgo }, confirmedMode: { not: null } },
-    })
-    const orders = await prisma.deliveryOrder.findMany({
-      where: { userId: req.userId, orderedAt: { gte: weekAgo } },
+    const { trips, orders } = await fetchWeeklyActivity(prisma, req.userId, {
+      includeEnergy: false,
     })
     const rewards = computeWeeklyRewards({ trips, energy: [], plastic, orders })
     const comparison = await computeComparison(prisma, req.userId)

@@ -4,7 +4,8 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { usePageLoad } from '../lib/usePageLoad'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
-import { PageHeader, EmptyState } from '../components/ui'
+import { useSubmit } from '../lib/useSubmit'
+import { PageHeader, EmptyState, LoadingScreen } from '../components/ui'
 
 interface FuelPurchase {
   id: string
@@ -17,8 +18,9 @@ interface FuelPurchase {
 
 export function FuelPage() {
   const { user } = useAuth()
-  const { data: purchases, reload } = usePageLoad(() => api<FuelPurchase[]>('/fuel'))
+  const { data: purchases, loading, error, reload } = usePageLoad(() => api<FuelPurchase[]>('/fuel'))
   const { saved, markSaved } = useSaveFeedback()
+  const { submitting, error: submitError, run: runSubmit } = useSubmit()
   const [form, setForm] = useState({
     liters: 2,
     amountInr: 200,
@@ -26,19 +28,23 @@ export function FuelPage() {
     purchasedAt: new Date().toISOString().slice(0, 16),
   })
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    await api('/fuel', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...form,
-        purchasedAt: new Date(form.purchasedAt).toISOString(),
-        vehicleId: form.vehicleId || undefined,
-      }),
+    void runSubmit(async () => {
+      await api('/fuel', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          purchasedAt: new Date(form.purchasedAt).toISOString(),
+          vehicleId: form.vehicleId || undefined,
+        }),
+      })
+      markSaved()
+      await reload()
     })
-    markSaved()
-    reload()
   }
+
+  if (loading) return <LoadingScreen label="Loading fuel entries…" />
 
   return (
     <div className="space-y-5">
@@ -107,10 +113,17 @@ export function FuelPage() {
           />
         </div>
 
-        <button type="submit" className="btn-primary w-full">
-          {saved ? 'Saved!' : 'Save fuel entry'}
+        <button type="submit" className="btn-primary w-full" disabled={submitting}>
+          {saved ? 'Saved!' : submitting ? 'Saving…' : 'Save fuel entry'}
         </button>
+        {submitError && (
+          <p className="text-center text-sm font-medium text-red-600" role="alert">{submitError}</p>
+        )}
       </form>
+
+      {error && (
+        <p className="text-center text-sm text-red-600" role="alert">{error}</p>
+      )}
 
       <h2 className="section-title">Previous entries</h2>
       {(!purchases || purchases.length === 0) ? (

@@ -1,6 +1,5 @@
 import { prisma } from '../lib/prisma.js'
-import { authMiddleware } from '../middleware/auth.js'
-import { route, withBody } from '../lib/router.js'
+import { authRouter, route, withBody } from '../lib/router.js'
 import { coachChatSchema } from '../lib/schemas/coach.js'
 import { executeCoachTool } from '../modules/coach/tools.js'
 import {
@@ -11,13 +10,11 @@ import {
   runAgenticCoach,
 } from '../modules/coach/agent.js'
 import { runFallbackCoach } from '../modules/coach/fallbackCoach.js'
-import { Router } from 'express'
 
-export const coachRouter = Router()
+export const coachRouter = authRouter()
 
 coachRouter.get(
   '/status',
-  authMiddleware,
   route(async (_req, res) => {
     const health = await checkLlmHealth()
     res.json({
@@ -43,7 +40,6 @@ coachRouter.get(
 
 coachRouter.post(
   '/chat',
-  authMiddleware,
   ...withBody(coachChatSchema, async (req, res) => {
     const body = req.body
     const user = await prisma.user.findUnique({ where: { id: req.userId } })

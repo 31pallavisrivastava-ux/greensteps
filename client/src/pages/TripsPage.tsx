@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { MapPin, Navigation, Play, Square, Plus } from 'lucide-react'
 import { api } from '../lib/api'
 import {
@@ -12,14 +12,17 @@ import {
 import type { TripResponse, ActionReward } from '@carbon/shared'
 import { CelebrationBanner } from '../components/rewards'
 import { useAuth } from '../lib/auth'
-import { PageHeader, EmptyState } from '../components/ui'
+import { usePageLoad } from '../lib/usePageLoad'
+import { PageHeader, EmptyState, LoadingScreen } from '../components/ui'
 import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
 import { useRadioGroup } from '../lib/useRadioGroup'
 import { TRANSPORT_MODES, getModeInfo, ModeIcon } from '../lib/transportModes'
 
 export function TripsPage() {
   const { user } = useAuth()
-  const [trips, setTrips] = useState<TripResponse[]>([])
+  const { data: trips, loading, error: loadError, reload: load } = usePageLoad(() =>
+    api<TripResponse[]>('/trips')
+  )
   const [tracking, setTracking] = useState(isTracking())
   const [points, setPoints] = useState<GpsPoint[]>([])
   const [confirmId, setConfirmId] = useState<string | null>(null)
@@ -31,9 +34,6 @@ export function TripsPage() {
   const [offlineMsg, setOfflineMsg] = useState<string | null>(null)
   const modeIds = TRANSPORT_MODES.map((m) => m.id)
   const { onKeyDown: onModeKeyDown } = useRadioGroup(selectedMode, modeIds, setSelectedMode)
-
-  const load = () => api<TripResponse[]>('/trips').then(setTrips).catch(console.error)
-  useEffect(() => { load() }, [])
 
   const handleStart = async () => {
     setGpsError(null)
@@ -100,10 +100,17 @@ export function TripsPage() {
     load()
   }
 
-  const pendingId = confirmId ?? trips.find((t) => !t.confirmedMode)?.id
+  const pendingId = confirmId ?? (trips ?? []).find((t) => !t.confirmedMode)?.id
+
+  if (loading) return <LoadingScreen label="Loading trips…" />
 
   return (
     <div className="space-y-5">
+      {loadError && (
+        <p className="rounded-md border-2 border-red-600 bg-red-50 px-3 py-2 text-sm font-medium text-red-800" role="alert">
+          {loadError}
+        </p>
+      )}
       <PageHeader
         icon={MapPin}
         iconBg="bg-indigo-100"
@@ -235,7 +242,7 @@ export function TripsPage() {
       </div>
 
       <h2 className="section-title">Past trips</h2>
-      {trips.length === 0 ? (
+      {(!trips || trips.length === 0) ? (
         <EmptyState
           icon={MapPin}
           title="No trips yet"
@@ -243,7 +250,7 @@ export function TripsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {trips.map((t) => {
+          {(trips ?? []).map((t) => {
             const mode = getModeInfo(t.confirmedMode ?? t.suggestedMode)
             return (
               <div key={t.id} className="card flex gap-4">

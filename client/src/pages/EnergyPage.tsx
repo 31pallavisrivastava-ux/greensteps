@@ -3,9 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import { Camera, FileText, Loader2, Sun, Zap } from 'lucide-react'
 import { api } from '../lib/api'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
+import { usePageLoad } from '../lib/usePageLoad'
+import { useSubmit } from '../lib/useSubmit'
 import type { ActionReward, BillOcrResult } from '@carbon/shared'
 import { CelebrationBanner } from '../components/rewards'
-import { PageHeader, EmptyState } from '../components/ui'
+import { PageHeader, EmptyState, LoadingScreen } from '../components/ui'
 
 interface EnergyReading {
   id: string
@@ -33,7 +35,9 @@ export function EnergyPage() {
   const [searchParams] = useSearchParams()
   const scanRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [readings, setReadings] = useState<EnergyReading[]>([])
+  const { data: readings, loading, error: loadError, reload } = usePageLoad(() =>
+    api<EnergyReading[]>('/energy')
+  )
   const [form, setForm] = useState({
     kwh: 150,
     solarOffsetKwh: 0,
@@ -44,13 +48,11 @@ export function EnergyPage() {
     periodEnd: new Date().toISOString().slice(0, 10),
   })
   const { saved, markSaved } = useSaveFeedback()
+  const { submitting, error: submitError, run: runSubmit } = useSubmit()
   const [lastReward, setLastReward] = useState<ActionReward | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrResult, setOcrResult] = useState<BillOcrResult | null>(null)
   const [ocrError, setOcrError] = useState<string | null>(null)
-
-  const load = () => api<EnergyReading[]>('/energy').then(setReadings).catch(console.error)
-  useEffect(() => { load() }, [])
 
   useEffect(() => {
     if (searchParams.get('scan') === '1' && scanRef.current) {
@@ -83,7 +85,7 @@ export function EnergyPage() {
       if (parsed.kwh) applyOcrToForm(parsed)
       if (save && parsed.reward) {
         setLastReward(parsed.reward)
-        load()
+        await reload()
       }
     } catch (e) {
       setOcrError(e instanceof Error ? e.message : 'Could not read bill')
@@ -116,20 +118,24 @@ export function EnergyPage() {
     markSaved()
   }
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const res = await api<{ reward?: ActionReward }>('/energy', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...form,
-        periodStart: new Date(form.periodStart).toISOString(),
-        periodEnd: new Date(form.periodEnd).toISOString(),
-      }),
+    void runSubmit(async () => {
+      const res = await api<{ reward?: ActionReward }>('/energy', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          periodStart: new Date(form.periodStart).toISOString(),
+          periodEnd: new Date(form.periodEnd).toISOString(),
+        }),
+      })
+      if (res.reward) setLastReward(res.reward)
+      markSaved()
+      await reload()
     })
-    if (res.reward) setLastReward(res.reward)
-    markSaved()
-    load()
   }
+
+  if (loading) return <LoadingScreen label="Loading energy readings…" />
 
   return (
     <div className="space-y-5">
@@ -277,14 +283,21 @@ export function EnergyPage() {
           <p className="hint">Set to 0 if you do not use LPG at home</p>
         </div>
 
-        <button type="submit" className="btn-primary w-full">
-          {saved ? 'Saved!' : 'Save bill details'}
+        <button type="submit" className="btn-primary w-full" disabled={submitting}>
+          {saved ? 'Saved!' : submitting ? 'Saving…' : 'Save bill details'}
         </button>
+        {submitError && (
+          <p className="text-center text-sm font-medium text-red-600" role="alert">{submitError}</p>
+        )}
         {lastReward && <CelebrationBanner reward={lastReward} />}
       </form>
 
+      {loadError && (
+        <p className="text-center text-sm text-red-600" role="alert">{loadError}</p>
+      )}
+
       <h2 className="section-title">Previous bills</h2>
-      {readings.length === 0 ? (
+      {(!readings || readings.length === 0) ? (
         <EmptyState
           icon={Zap}
           title="No bills added yet"
@@ -292,7 +305,7 @@ export function EnergyPage() {
         />
       ) : (
         <div className="space-y-3">
-          {readings.map((r) => (
+          {(readings ?? []).map((r) => (
             <div key={r.id} className="card flex items-center gap-4">
               <div className="icon-circle bg-amber-50">
                 <Zap className="h-6 w-6 text-amber-600" aria-hidden />

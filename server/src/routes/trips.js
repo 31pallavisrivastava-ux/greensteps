@@ -1,5 +1,4 @@
 import { prisma } from '../lib/prisma.js'
-import { parseOptionalDate } from '../lib/http.js'
 import { authRouter, route, withBody, withParamsAndBody, created } from '../lib/router.js'
 import { uuidParamSchema } from '../lib/schemas/common.js'
 import {
@@ -9,10 +8,11 @@ import {
 } from '../lib/schemas/trip.js'
 import {
   computeTripEmissions,
-  inferModeFromPoints,
   transportCategoryForMode,
 } from '../modules/emissions/engine.js'
 import { computeTripReward } from '../modules/rewards/engine.js'
+import { createTripFromDraft } from '../lib/tripDraft.js'
+import { parseOptionalDate } from '../lib/http.js'
 
 export const tripsRouter = authRouter()
 
@@ -52,26 +52,7 @@ tripsRouter.get(
 tripsRouter.post(
   '/draft',
   ...withBody(tripDraftSchema, async (req, res) => {
-    const body = req.body
-    const { mode, confidence } = inferModeFromPoints(body.points, body.distanceKm)
-    created(
-      res,
-      mapTrip(
-        await prisma.trip.create({
-          data: {
-            userId: req.userId,
-            startedAt: new Date(body.startedAt),
-            endedAt: new Date(body.endedAt),
-            distanceKm: body.distanceKm,
-            suggestedMode: mode,
-            isCommute: body.isCommute ?? false,
-            source: 'GPS',
-            confidence,
-            routePolyline: JSON.stringify(body.points),
-          },
-        })
-      )
-    )
+    created(res, mapTrip(await createTripFromDraft(prisma, req.userId, req.body)))
   })
 )
 

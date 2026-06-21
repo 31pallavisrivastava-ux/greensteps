@@ -5,6 +5,7 @@ import { Package, Plus, ShoppingBag } from 'lucide-react'
 import { api } from '../lib/api'
 import { usePageLoad } from '../lib/usePageLoad'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
+import { useSubmit } from '../lib/useSubmit'
 import { PageHeader, EmptyState } from '../components/ui'
 
 interface LineItem { catalogId?: string; label: string; quantity: number }
@@ -30,6 +31,7 @@ export function PurchasesPage() {
   const [merchant, setMerchant] = useState<DeliveryMerchant>(DeliveryMerchant.BLINKIT)
   const [cart, setCart] = useState<LineItem[]>([])
   const { saved, markSaved } = useSaveFeedback()
+  const { submitting, error: submitError, run: runSubmit } = useSubmit()
   const { data: orders, reload: loadOrders } = usePageLoad(() => api<Order[]>('/purchases'))
 
   const merchantInfo = MERCHANTS.find((m) => m.merchant === merchant)!
@@ -51,19 +53,21 @@ export function PurchasesPage() {
     })
   }
 
-  const submit = async () => {
+  const submit = () => {
     if (!cart.length) return
-    await api('/purchases/orders', {
-      method: 'POST',
-      body: JSON.stringify({
-        merchant,
-        orderedAt: new Date().toISOString(),
-        lineItems: cart,
-      }),
+    void runSubmit(async () => {
+      await api('/purchases/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          merchant,
+          orderedAt: new Date().toISOString(),
+          lineItems: cart,
+        }),
+      })
+      setCart([])
+      markSaved()
+      await loadOrders()
     })
-    setCart([])
-    markSaved()
-    loadOrders()
   }
 
   return (
@@ -127,9 +131,12 @@ export function PurchasesPage() {
                 </li>
               ))}
             </ul>
-            <button type="button" className="btn-primary mt-4 w-full" onClick={submit}>
-              {saved ? 'Order saved!' : 'Save this order'}
+            <button type="button" className="btn-primary mt-4 w-full" onClick={submit} disabled={submitting}>
+              {saved ? 'Order saved!' : submitting ? 'Saving…' : 'Save this order'}
             </button>
+            {submitError && (
+              <p className="mt-2 text-center text-sm font-medium text-red-600" role="alert">{submitError}</p>
+            )}
           </div>
         )}
       </div>

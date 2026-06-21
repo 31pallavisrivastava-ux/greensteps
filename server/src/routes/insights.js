@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js'
-import { authRouter, route } from '../lib/router.js'
+import { authRouter, route, withQuery } from '../lib/router.js'
 import {
   aggregateFootprint,
   aggregatePlastic,
@@ -10,13 +10,15 @@ import { computeWeeklyRewards } from '../modules/rewards/engine.js'
 import { getWeeklyHistory, explainFootprint } from '../modules/insights/history.js'
 import { getPersonalFootprint } from '../modules/family/engine.js'
 import { buildWeeklyTips, computeCommuteSplit } from '../modules/insights/weeklyTips.js'
+import { periodQuerySchema, weeksQuerySchema } from '../lib/schemas/queries.js'
+import { fetchWeeklyActivity } from '../lib/weeklyActivity.js'
 
 export const emissionsRouter = authRouter()
 
 emissionsRouter.get(
   '/summary',
-  route(async (req, res) => {
-    const period = req.query.period === 'week' ? 'week' : 'month'
+  ...withQuery(periodQuerySchema, async (req, res) => {
+    const { period } = req.validatedQuery
     res.json(await aggregateFootprint(prisma, req.userId, period))
   })
 )
@@ -42,24 +44,11 @@ insightsRouter.get(
   route(async (req, res) => {
     const footprint = await aggregateFootprint(prisma, req.userId, 'week')
     const plastic = await aggregatePlastic(prisma, req.userId, 'week')
-
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
-
-    const [trips, orders, unconfirmed, energy] = await Promise.all([
-      prisma.trip.findMany({
-        where: { userId: req.userId, startedAt: { gte: weekAgo }, confirmedMode: { not: null } },
-      }),
-      prisma.deliveryOrder.findMany({
-        where: { userId: req.userId, orderedAt: { gte: weekAgo } },
-      }),
-      prisma.trip.count({
-        where: { userId: req.userId, confirmedMode: null, startedAt: { gte: weekAgo } },
-      }),
-      prisma.energyReading.findMany({
-        where: { userId: req.userId, periodEnd: { gte: weekAgo } },
-      }),
-    ])
+    const { trips, orders, energy, unconfirmedTrips } = await fetchWeeklyActivity(
+      prisma,
+      req.userId,
+      { includeUnconfirmed: true }
+    )
 
     const totalKm = trips.reduce((s, t) => s + t.distanceKm, 0)
     const publicKm = trips
@@ -79,7 +68,7 @@ insightsRouter.get(
       quickCommerceOrders: orders.filter((o) => o.orderType === 'QUICK_COMMERCE').length,
       foodDeliveryOrders: orders.filter((o) => o.orderType === 'FOOD_DELIVERY').length,
       plastic,
-      unconfirmedTrips: unconfirmed,
+      unconfirmedTrips,
     })
 
     res.json({
@@ -95,8 +84,8 @@ insightsRouter.get(
 
 insightsRouter.get(
   '/history',
-  route(async (req, res) => {
-    const weeks = Math.min(24, Math.max(4, Number(req.query.weeks) || 12))
+  ...withQuery(weeksQuerySchema, async (req, res) => {
+    const { weeks } = req.validatedQuery
     res.json(await getWeeklyHistory(prisma, req.userId, weeks))
   })
 )

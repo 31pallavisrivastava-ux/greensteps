@@ -1,7 +1,12 @@
 import { prisma } from '../lib/prisma.js'
 import { serializeUser } from '../lib/userProfile.js'
-import { authRouter, route, withBody, created } from '../lib/router.js'
+import { route, withBody, withQuery, created, authRouter } from '../lib/router.js'
 import { createVehicleSchema, updateProfileSchema } from '../lib/schemas/user.js'
+import { orderTypeQuerySchema } from '../lib/schemas/queries.js'
+import {
+  filterPackagingByOrderType,
+  serializePackagingItem,
+} from '../lib/packagingCatalog.js'
 import { INDIAN_CITIES } from '../modules/engage/engine.js'
 import { Router } from 'express'
 
@@ -9,23 +14,11 @@ export const packagingRouter = Router()
 
 packagingRouter.get(
   '/catalog',
-  route(async (req, res) => {
-    const orderType = req.query.orderType
+  ...withQuery(orderTypeQuerySchema, async (req, res) => {
+    const { orderType } = req.validatedQuery
     const items = await prisma.packagingCatalogItem.findMany()
-    const filtered = orderType
-      ? items.filter((i) => i.orderTypes.includes(String(orderType)))
-      : items
-    res.json(
-      filtered.map((i) => ({
-        id: i.id,
-        category: i.category,
-        label: i.label,
-        orderTypes: [i.orderTypes],
-        plasticGramsPerUnit: i.plasticGramsPerUnit,
-        plasticType: i.plasticType,
-        co2ePerUnitKg: i.co2ePerUnitKg,
-      }))
-    )
+    const filtered = filterPackagingByOrderType(items, orderType)
+    res.json(filtered.map(serializePackagingItem))
   })
 )
 

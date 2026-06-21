@@ -33,6 +33,7 @@ async function registerUser(email, password = 'testpass1') {
 }
 
 before(async () => {
+  process.env.NODE_ENV = 'test'
   process.env.DATABASE_URL = 'file:./test-integration.db'
   process.env.JWT_SECRET = 'test-integration-secret'
   process.env.LLM_AGENT_ENABLED = 'false'
@@ -356,5 +357,121 @@ describe('API integration', () => {
     assert.equal(typeof body.agentEnabled, 'boolean')
     assert.equal(body.provider, 'ollama')
     assert.equal(typeof body.llmReachable, 'boolean')
+  })
+
+  it('POST /api/fuel rejects invalid purchasedAt datetime', async () => {
+    const { token } = await registerUser(`fuel-bad-${Date.now()}@test.local`)
+    const { status } = await api('/api/fuel', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ purchasedAt: 'not-a-date', liters: 2 }),
+    })
+    assert.equal(status, 400)
+  })
+
+  it('POST /api/fuel creates fuel purchase', async () => {
+    const { token } = await registerUser(`fuel-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/fuel', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        purchasedAt: new Date().toISOString(),
+        liters: 5,
+        amountInr: 500,
+      }),
+    })
+    assert.equal(status, 201)
+    assert.equal(body.liters, 5)
+    assert.ok(body.co2eKg > 0)
+  })
+
+  it('POST /api/energy creates energy reading', async () => {
+    const { token } = await registerUser(`energy-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/energy', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        periodStart: new Date('2024-01-01').toISOString(),
+        periodEnd: new Date('2024-01-31').toISOString(),
+        kwh: 120,
+        lpgKg: 14.2,
+      }),
+    })
+    assert.equal(status, 201)
+    assert.equal(body.kwh, 120)
+    assert.ok(body.co2eKg >= 0)
+  })
+
+  it('POST /api/plastic/disposal logs plastic event', async () => {
+    const { token } = await registerUser(`plastic-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/plastic/disposal', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        occurredAt: new Date().toISOString(),
+        plasticType: 'PET',
+        grams: 25,
+        disposalMethod: 'RECYCLED',
+      }),
+    })
+    assert.equal(status, 201)
+    assert.equal(body.grams, 25)
+    assert.ok(body.reward)
+  })
+
+  it('POST /api/purchases/orders creates delivery order', async () => {
+    const { token } = await registerUser(`purchase-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/purchases/orders', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        merchant: 'BLINKIT',
+        orderedAt: new Date().toISOString(),
+        lineItems: [{ label: 'Milk pouch', quantity: 2 }],
+      }),
+    })
+    assert.equal(status, 201)
+    assert.equal(body.merchant, 'BLINKIT')
+    assert.ok(body.plasticGrams >= 0)
+  })
+
+  it('GET /api/packaging/catalog filters by orderType', async () => {
+    const { prisma } = await import('../src/lib/prisma.js')
+    await prisma.packagingCatalogItem.createMany({
+      data: [
+        {
+          id: `qc-${Date.now()}`,
+          category: 'snacks',
+          label: 'Test QC item',
+          orderTypes: 'QUICK_COMMERCE',
+          plasticGramsPerUnit: 10,
+          plasticType: 'LDPE',
+          co2ePerUnitKg: 0.01,
+          source: 'test',
+        },
+        {
+          id: `fd-${Date.now()}`,
+          category: 'food',
+          label: 'Test FD item',
+          orderTypes: 'FOOD_DELIVERY',
+          plasticGramsPerUnit: 20,
+          plasticType: 'PP',
+          co2ePerUnitKg: 0.02,
+          source: 'test',
+        },
+      ],
+    })
+
+    const { status, body } = await api('/api/packaging/catalog?orderType=QUICK_COMMERCE')
+    assert.equal(status, 200)
+    assert.ok(Array.isArray(body))
+    assert.ok(body.every((item) => item.orderTypes.includes('QUICK_COMMERCE')))
+    assert.ok(body.some((item) => item.label === 'Test QC item'))
+    assert.ok(!body.some((item) => item.label === 'Test FD item'))
+  })
+
+  it('GET /api/packaging/catalog rejects invalid orderType', async () => {
+    const { status } = await api('/api/packaging/catalog?orderType=INVALID')
+    assert.equal(status, 400)
   })
 })

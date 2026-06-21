@@ -10,6 +10,7 @@ import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
 import { useRadioGroup } from '../lib/useRadioGroup'
 import { usePageLoad } from '../lib/usePageLoad'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
+import { useSubmit } from '../lib/useSubmit'
 
 const PLASTIC_TYPES = [
   { id: 'PET', label: 'Water bottle (PET)' },
@@ -31,6 +32,7 @@ export function PlasticPage() {
     api<PlasticSummary>('/plastic/summary?period=week')
   )
   const { saved, markSaved } = useSaveFeedback()
+  const { submitting, error: submitError, run: runSubmit } = useSubmit()
   const [form, setForm] = useState({
     plasticType: 'PET' as (typeof PLASTIC_TYPES)[number]['id'],
     grams: 25,
@@ -46,18 +48,20 @@ export function PlasticPage() {
     (id) => setForm({ ...form, disposalMethod: id })
   )
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const res = await api<{ reward?: ActionReward }>('/plastic/disposal', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...form,
-        occurredAt: new Date(form.occurredAt).toISOString(),
-      }),
+    void runSubmit(async () => {
+      const res = await api<{ reward?: ActionReward }>('/plastic/disposal', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          occurredAt: new Date(form.occurredAt).toISOString(),
+        }),
+      })
+      if (res.reward) setLastReward(res.reward)
+      markSaved()
+      await reload()
     })
-    if (res.reward) setLastReward(res.reward)
-    markSaved()
-    reload()
   }
 
   const chartData = summary
@@ -159,9 +163,12 @@ export function PlasticPage() {
           />
         </div>
 
-        <button type="submit" className="btn-primary w-full">
-          {saved ? 'Saved!' : 'Save plastic entry'}
+        <button type="submit" className="btn-primary w-full" disabled={submitting}>
+          {saved ? 'Saved!' : submitting ? 'Saving…' : 'Save plastic entry'}
         </button>
+        {submitError && (
+          <p className="text-center text-sm font-medium text-red-600" role="alert">{submitError}</p>
+        )}
         {saved && (
           <p className="text-center text-sm font-medium text-emerald-700" role="status">
             Plastic entry saved

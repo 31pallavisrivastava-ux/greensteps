@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useSaveFeedback } from '../lib/useSaveFeedback'
+import { useSubmit } from '../lib/useSubmit'
 import { CityPicker } from '../components/CityPicker'
 import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
 import { PageHeader } from '../components/ui'
@@ -28,6 +29,7 @@ export function SettingsPage() {
   const [transport, setTransport] = useState<TransportPreference>(user?.transportPreference ?? 'MIXED')
   const [concern, setConcern] = useState<TopConcern>(user?.topConcern ?? 'POWER')
   const { saved, markSaved } = useSaveFeedback(2000)
+  const { submitting, error: submitError, run: runSubmit } = useSubmit()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -38,24 +40,24 @@ export function SettingsPage() {
     }
   }, [user])
 
-  const save = async (e: React.FormEvent) => {
+  const save = (e: React.FormEvent) => {
     e.preventDefault()
     if (!city) {
       setError('Please select a city')
       return
     }
-    setError('')
-    try {
+    void runSubmit(async () => {
       await api('/users/me', {
         method: 'PATCH',
         body: JSON.stringify({ city, transportPreference: transport, topConcern: concern }),
       })
       await refreshUser()
       markSaved()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
-    }
+      setError('')
+    })
   }
+
+  const displayError = error || submitError
 
   return (
     <div className="space-y-5">
@@ -102,20 +104,20 @@ export function SettingsPage() {
           <p className="hint mt-2">Drives your &quot;Do this today&quot; card</p>
         </BlockSection>
 
-        <button type="submit" className="btn-primary w-full" disabled={!city} aria-live="polite">
-          {saved ? 'Saved!' : 'Save settings'}
+        <button type="submit" className="btn-primary w-full" disabled={!city || submitting} aria-live="polite">
+          {saved ? 'Saved!' : submitting ? 'Saving…' : 'Save settings'}
         </button>
         {saved && (
           <p role="status" className="text-sm font-bold text-brand">
             Settings saved successfully.
           </p>
         )}
-        {error && (
+        {displayError && (
           <p
             role="alert"
             className="rounded-md border-2 border-red-600 bg-red-50 px-3 py-2 text-sm font-bold text-red-700"
           >
-            {error}
+            {displayError}
           </p>
         )}
       </form>

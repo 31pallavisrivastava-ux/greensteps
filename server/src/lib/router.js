@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth.js'
 import { asyncHandler } from './http.js'
-import { validateBody, validateParams } from '../middleware/validate.js'
+import { validateBody, validateParams, validateQuery } from '../middleware/validate.js'
 
 /** Express router with JWT auth middleware applied. */
 export function authRouter() {
@@ -55,4 +55,9 @@ export function notImplemented(message, extra = {}) {
   }
 }
 
-export { validateBody, validateParams, asyncHandler }
+/** `[validateQuery(schema), asyncHandler(handler)]`. */
+export function withQuery(schema, handler) {
+  return [validateQuery(schema), asyncHandler(handler)]
+}
+
+export { validateBody, validateParams, validateQuery, asyncHandler }

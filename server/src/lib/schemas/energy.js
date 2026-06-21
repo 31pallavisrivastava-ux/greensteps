@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { isoDateString } from './primitives.js'
 
 export const energyReadingSchema = z.object({
-  periodStart: z.string(),
-  periodEnd: z.string(),
+  periodStart: isoDateString,
+  periodEnd: isoDateString,
   kwh: z.number().nonnegative(),
   solarOffsetKwh: z.number().nonnegative().optional(),
   lpgKg: z.number().nonnegative().optional(),
