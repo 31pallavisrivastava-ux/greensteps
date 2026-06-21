@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { authRouter } from './routes/auth.js'
 import { tripsRouter } from './routes/trips.js'
 import { fuelRouter } from './routes/fuel.js'
@@ -47,6 +49,14 @@ export function createApp() {
   app.use('/api/groups', groupsRouter)
   app.use('/api/family', familyRouter)
   app.use('/api/coach', coachRouter)
+
+  if (process.env.NODE_ENV === 'production') {
+    const clientDist = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist')
+    app.use(express.static(clientDist))
+    app.get(/^(?!\/api).*/, (_req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'))
+    })
+  }
 
   app.use((err, _req, res, _next) => {
     console.error(err)

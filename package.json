@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
-    "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
+    "build": "npm run build -w shared && npm run build -w client",
+    "start": "npm run start -w server",
     "db:generate": "npm run db:generate -w server",
     "db:push": "npm run db:push -w server",
     "db:seed": "npm run db:seed -w server",

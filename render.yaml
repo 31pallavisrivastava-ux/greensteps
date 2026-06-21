@@ -1,0 +1,23 @@
+# Free-tier deploy: https://render.com → New → Blueprint → connect this repo
+services:
+  - type: web
+    name: greensteps
+    runtime: node
+    plan: free
+    buildCommand: >-
+      npm install &&
+      npm run build &&
+      npm run db:generate -w server &&
+      npm run db:push -w server &&
+      npm run db:seed -w server
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: JWT_SECRET
+        generateValue: true
+      # Ollama runs locally only — cloud deploy uses rules-based coach fallback
+      - key: LLM_AGENT_ENABLED
+        value: "false"
