@@ -409,6 +409,65 @@ export interface BillOcrResult {
   rawText?: string
 }
 
+export type FamilyRole = 'OWNER' | 'ADULT' | 'CHILD'
+
+export interface PersonalFootprint {
+  period: 'week'
+  totalKg: number
+  scope1: number
+  scope2: number
+  scope3: number
+  byCategory: Record<string, number>
+  plasticGrams: number
+  activity: { trips: number; orders: number; energyReadings: number }
+  fairShareKg: number
+  vsFairSharePct: number
+  status: 'under' | 'on_track' | 'over'
+  statusLabel: string
+}
+
+export interface FamilyGroupSummary {
+  id: string
+  name: string
+  joinCode: string
+  memberCount: number
+  role: FamilyRole
+  joinedAt: string
+}
+
+export interface FamilyMemberFootprint {
+  userId: string
+  name: string
+  role: FamilyRole
+  co2TotalKg: number
+  scope1: number
+  scope2: number
+  scope3: number
+  co2SavedKg: number
+  plasticGrams: number
+  tripCount: number
+  orderCount: number
+  byCategory: { fuel: number; energy: number; travel: number }
+  isYou: boolean
+}
+
+export interface FamilyDashboard {
+  family: { id: string; name: string; joinCode: string; memberCount: number }
+  household: {
+    totalKg: number
+    scope1: number
+    scope2: number
+    scope3: number
+    fairShareKg: number
+    perPersonAvgKg: number
+    vsFairSharePct: number
+    topDriver: string
+    status: 'under' | 'on_track' | 'over'
+  }
+  members: FamilyMemberFootprint[]
+  yourSharePct: number | null
+}
+
 export interface VehicleDto {
   id: string
   label: string

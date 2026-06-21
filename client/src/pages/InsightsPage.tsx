@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -16,7 +17,10 @@ import { shareText } from '../lib/share'
 import type {
   CommunityComparison,
   EngageDashboard,
+  FamilyDashboard,
+  FamilyGroupSummary,
   FootprintHistory,
+  PersonalFootprint,
   ShareMilestone,
   WeeklyInsight,
 } from '@carbon/shared'
@@ -27,6 +31,7 @@ import { ComparisonCard } from '../components/comparison'
 import { EngagePanel } from '../components/engage/EngagePanel'
 import { FootprintExplainPanel } from '../components/FootprintExplainPanel'
 import { ShareCardButton } from '../components/engage/ShareCardButton'
+import { BlockOption } from '../components/BlockOption'
 
 const SCOPE_COLORS = ['#dc2626', '#f59e0b', '#6366f1']
 const SCOPE_LABELS = ['Fuel & gas', 'Electricity', 'Travel & orders']
@@ -41,19 +46,31 @@ export function InsightsPage() {
   const [orderReduction, setOrderReduction] = useState(2)
   const [sharing, setSharing] = useState(false)
   const [explainOpen, setExplainOpen] = useState(false)
+  const [view, setView] = useState<'personal' | 'family'>('personal')
+  const [personal, setPersonal] = useState<PersonalFootprint | null>(null)
+  const [familyDashboard, setFamilyDashboard] = useState<FamilyDashboard | null>(null)
 
   useEffect(() => {
     Promise.all([
       api<WeeklyInsight>('/insights/weekly'),
-      api<FootprintHistory>('/insights/history?weeks=12'),
       api<CommunityComparison>('/guide/comparison'),
       api<EngageDashboard>('/engage/dashboard'),
     ])
-      .then(([ins, hist, comp, eng]) => {
+      .then(([ins, comp, eng]) => {
         setInsight(ins)
-        setHistory(hist)
         setComparison(comp)
         setEngage(eng)
+      })
+      .catch(console.error)
+
+    api<FootprintHistory>('/insights/history?weeks=12').then(setHistory).catch(console.error)
+    api<PersonalFootprint>('/insights/personal').then(setPersonal).catch(console.error)
+    api<FamilyGroupSummary[]>('/family')
+      .then(async (families) => {
+        if (families.length > 0) {
+          const dash = await api<FamilyDashboard>(`/family/${families[0].id}/dashboard`)
+          setFamilyDashboard(dash)
+        }
       })
       .catch(console.error)
   }, [])
@@ -95,7 +112,13 @@ export function InsightsPage() {
     <div className="page-stack">
       <div>
         <h1 className="page-title">Impact</h1>
-        <p className="page-sub">{insight.footprint.total.toFixed(1)} kg CO₂ this week</p>
+        <p className="page-sub">
+          {view === 'personal'
+            ? `${personal?.totalKg ?? insight.footprint.total.toFixed(1)} kg CO₂ this week (you)`
+            : familyDashboard
+              ? `${familyDashboard.household.totalKg} kg CO₂ this week (household)`
+              : `${insight.footprint.total.toFixed(1)} kg CO₂ this week`}
+        </p>
         <button
           type="button"
           onClick={() => setExplainOpen(true)}
@@ -105,7 +128,90 @@ export function InsightsPage() {
         </button>
       </div>
 
-      {history && history.weeks.length > 0 && (
+      <div className="block-grid !grid-cols-2">
+        <BlockOption selected={view === 'personal'} onClick={() => setView('personal')} compact>
+          👤 Personal
+        </BlockOption>
+        <BlockOption
+          selected={view === 'family'}
+          onClick={() => setView('family')}
+          compact
+          className={!familyDashboard ? 'opacity-60' : ''}
+        >
+          🏠 Family
+        </BlockOption>
+      </div>
+
+      {view === 'personal' && personal && (
+        <div className="block-panel space-y-3">
+          <p className="text-xs font-black uppercase text-brand">Your personal footprint</p>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { l: 'Fuel', v: personal.scope1 },
+              { l: 'Power', v: personal.scope2 },
+              { l: 'Travel', v: personal.scope3 },
+            ].map(({ l, v }) => (
+              <div key={l} className="rounded-md border-2 border-slate-900 bg-slate-50 p-2 text-center">
+                <p className="font-black">{v.toFixed(1)}</p>
+                <p className="text-[10px] font-bold uppercase">{l}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm font-medium text-slate-600">{personal.statusLabel}</p>
+        </div>
+      )}
+
+      {view === 'family' && (
+        <>
+          {familyDashboard ? (
+            <div className="block-panel space-y-3">
+              <p className="text-xs font-black uppercase text-brand">
+                {familyDashboard.family.name} · {familyDashboard.family.memberCount} members
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { l: 'Fuel', v: familyDashboard.household.scope1 },
+                  { l: 'Power', v: familyDashboard.household.scope2 },
+                  { l: 'Travel', v: familyDashboard.household.scope3 },
+                ].map(({ l, v }) => (
+                  <div key={l} className="rounded-md border-2 border-slate-900 bg-slate-50 p-2 text-center">
+                    <p className="font-black">{v.toFixed(1)}</p>
+                    <p className="text-[10px] font-bold uppercase">{l}</p>
+                  </div>
+                ))}
+              </div>
+              <ul className="space-y-2">
+                {familyDashboard.members.map((m) => (
+                  <li
+                    key={m.userId}
+                    className={`flex justify-between rounded-md border-2 px-3 py-2 text-sm ${
+                      m.isYou ? 'border-brand bg-emerald-50' : 'border-slate-900 bg-white'
+                    }`}
+                  >
+                    <span className="font-bold">
+                      {m.name}
+                      {m.isYou ? ' (you)' : ''}
+                    </span>
+                    <span className="font-black text-brand">{m.co2TotalKg} kg</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="hint">
+                Each member logs their own trips and bills — avoid double-counting shared electricity.
+              </p>
+            </div>
+          ) : (
+            <div className="block-panel text-center">
+              <p className="font-bold text-slate-800">No family group yet</p>
+              <Link to="/family" className="mt-2 inline-block text-sm font-black text-brand underline">
+                Create or join a family →
+              </Link>
+            </div>
+          )}
+        </>
+      )}
+
+      {view === 'personal' && history && history.weeks.length > 0 && (
         <CollapsibleSection
           title="12-week trend"
           summary={history.trend.message}
@@ -136,6 +242,8 @@ export function InsightsPage() {
         </CollapsibleSection>
       )}
 
+      {view === 'personal' && (
+        <>
       <FootprintExplainPanel open={explainOpen} onClose={() => setExplainOpen(false)} />
 
       {insight.rewards && <WeeklyRewardsCard rewards={insight.rewards} compact />}
@@ -249,6 +357,14 @@ export function InsightsPage() {
       {insight.tips[0] && <TipCard>{insight.tips[0]}</TipCard>}
 
       <ShareCardButton label="Share WhatsApp image" className="btn-secondary w-full" />
+        </>
+      )}
+
+      {view === 'family' && familyDashboard && (
+        <Link to="/family" className="block text-center text-sm font-black text-brand underline">
+          Manage family groups →
+        </Link>
+      )}
     </div>
   )
 }

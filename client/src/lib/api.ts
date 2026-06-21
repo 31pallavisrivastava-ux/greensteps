@@ -27,7 +27,9 @@ export async function api<T>(
         ? err.error
         : res.status === 401
           ? 'Unauthorized — check email/password or start the API server'
-          : `Request failed (${res.status})`
+          : res.status === 404
+            ? 'API route not found — restart the server: npm run dev (old process may still be on port 3001)'
+            : `Request failed (${res.status})`
     throw new Error(message)
   }
   return res.json()

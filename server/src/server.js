@@ -14,6 +14,7 @@ import { offlineRouter } from './routes/offline.js'
 import { guideRouter } from './routes/guide.js'
 import { engageRouter } from './routes/engage.js'
 import { groupsRouter } from './routes/groups.js'
+import { familyRouter } from './routes/family.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3001
@@ -23,7 +24,11 @@ app.use(morgan('dev'))
 app.use(express.json({ limit: '2mb' }))
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'carbon-footprint-api' })
+  res.json({
+    status: 'ok',
+    service: 'carbon-footprint-api',
+    routes: ['insights/personal', 'insights/history', 'family'],
+  })
 })
 
 app.use('/api/auth', authRouter)
@@ -40,6 +45,7 @@ app.use('/api/offline', offlineRouter)
 app.use('/api/guide', guideRouter)
 app.use('/api/engage', engageRouter)
 app.use('/api/groups', groupsRouter)
+app.use('/api/family', familyRouter)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

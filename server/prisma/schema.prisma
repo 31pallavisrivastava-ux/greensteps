@@ -111,6 +111,8 @@ model User {
   plasticEvents   PlasticEvent[]
   classMembers    ClassMember[]
   createdGroups   ClassGroup[]     @relation("GroupCreator")
+  familyMembers   FamilyMember[]
+  createdFamilies FamilyGroup[]    @relation("FamilyCreator")
 
   @@map("users")
 }
@@ -322,4 +324,37 @@ model ClassMember {
   @@unique([userId, groupId])
   @@index([groupId])
   @@map("class_members")
+}
+
+enum FamilyRole {
+  OWNER
+  ADULT
+  CHILD
+}
+
+model FamilyGroup {
+  id          String         @id @default(uuid())
+  name        String
+  joinCode    String         @unique @map("join_code")
+  createdById String         @map("created_by_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  createdBy   User           @relation("FamilyCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     FamilyMember[]
+
+  @@map("family_groups")
+}
+
+model FamilyMember {
+  id       String      @id @default(uuid())
+  userId   String      @map("user_id")
+  familyId String      @map("family_id")
+  role     FamilyRole  @default(ADULT)
+  nickname String?
+  joinedAt DateTime    @default(now()) @map("joined_at")
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family   FamilyGroup @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, familyId])
+  @@index([familyId])
+  @@map("family_members")
 }

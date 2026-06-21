@@ -7,13 +7,15 @@ import { EngagePanel } from '../components/engage/EngagePanel'
 import { QuickActions } from '../components/ui-extra'
 import { LoadingScreen, TipCard } from '../components/ui'
 import { TodayActionCard } from '../components/TodayActionCard'
-import type { CommunityComparison, EngageDashboard, TodayAction, TripResponse, WeeklyInsight } from '@carbon/shared'
+import { PersonalFootprintCard } from '../components/PersonalFootprintCard'
+import type { CommunityComparison, EngageDashboard, PersonalFootprint, TodayAction, TripResponse, WeeklyInsight } from '@carbon/shared'
 
 export function TodayPage() {
   const [insight, setInsight] = useState<WeeklyInsight | null>(null)
   const [comparison, setComparison] = useState<CommunityComparison | null>(null)
   const [engage, setEngage] = useState<EngageDashboard | null>(null)
   const [todayAction, setTodayAction] = useState<TodayAction | null>(null)
+  const [personal, setPersonal] = useState<PersonalFootprint | null>(null)
   const [pendingTrips, setPendingTrips] = useState<TripResponse[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -34,6 +36,8 @@ export function TodayPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+
+    api<PersonalFootprint>('/insights/personal').then(setPersonal).catch(console.error)
   }, [])
 
   if (loading) {
@@ -48,6 +52,8 @@ export function TodayPage() {
       )}
 
       {todayAction && <TodayActionCard action={todayAction} />}
+
+      {personal && <PersonalFootprintCard data={personal} />}
 
       <QuickActions
         actions={[

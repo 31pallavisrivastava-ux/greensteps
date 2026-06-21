@@ -9,6 +9,7 @@ import {
 } from '../modules/emissions/engine.js'
 import { computeWeeklyRewards } from '../modules/rewards/engine.js'
 import { getWeeklyHistory, explainFootprint } from '../modules/insights/history.js'
+import { getPersonalFootprint } from '../modules/family/engine.js'
 
 export const emissionsRouter = Router()
 emissionsRouter.use(authMiddleware)
@@ -26,6 +27,11 @@ emissionsRouter.get('/factors', async (_req, res) => {
 
 export const insightsRouter = Router()
 insightsRouter.use(authMiddleware)
+
+insightsRouter.get('/personal', async (req, res) => {
+  const personal = await getPersonalFootprint(prisma, req.userId)
+  res.json(personal)
+})
 
 insightsRouter.get('/weekly', async (req, res) => {
   const footprint = await aggregateFootprint(prisma, req.userId, 'week')

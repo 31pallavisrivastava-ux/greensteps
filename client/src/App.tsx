@@ -14,6 +14,7 @@ import { GuidePage } from './pages/GuidePage'
 import { LogPage } from './pages/LogPage'
 import { ClassPage } from './pages/ClassPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { FamilyPage } from './pages/FamilyPage'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -64,6 +65,7 @@ export function App() {
         <Route path="purchases" element={<PurchasesPage />} />
         <Route path="plastic" element={<PlasticPage />} />
         <Route path="insights" element={<InsightsPage />} />
+        <Route path="family" element={<FamilyPage />} />
         <Route path="guide" element={<GuidePage />} />
         <Route path="class" element={<ClassPage />} />
         <Route path="settings" element={<SettingsPage />} />
