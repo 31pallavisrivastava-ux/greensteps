@@ -149,7 +149,7 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 
 | Sign in | Home |
 |---------|------|
-| ![Sign in](docs/screenshots/login.png) | ![Home dashboard with personal footprint card](docs/screenshots/home.png) |
+| ![Sign in](docs/screenshots/login.png) | ![Home with Ask AI footer and personal footprint](docs/screenshots/home.png) |
 
 | Log hub | Guide checklists |
 |---------|------------------|
@@ -163,9 +163,9 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 |--------------------|------------------|
 | ![Personal CO₂ breakdown](docs/screenshots/family-personal.png) | ![Create or join a household](docs/screenshots/family.png) |
 
-| Settings |
-|----------|
-| ![City picker and preference blocks](docs/screenshots/settings.png) |
+| Settings | AI coach |
+|----------|----------|
+| ![City picker and preference blocks](docs/screenshots/settings.png) | ![Agentic coach chat with Ask AI entry](docs/screenshots/coach.png) |
 
 ## Stack
 

@@ -15,18 +15,20 @@ const BASE = 'http://localhost:5173'
 const VIEWPORT = { width: 390, height: 844 }
 
 async function login(page) {
-  await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
-  await page.getByLabel(/email/i).fill('demo@carbon.local')
-  await page.getByLabel(/password/i).fill('demo1234')
-  await page.getByRole('button', { name: /sign in|log in/i }).click()
-  await page.waitForURL(`${BASE}/**`, { timeout: 15000 })
-  await page.waitForTimeout(800)
+  await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
+  await page.locator('#email').fill('demo@carbon.local')
+  await page.locator('#password').fill('demo1234')
+  await page.getByRole('button', { name: /sign in/i }).click()
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 })
+  await page.waitForLoadState('networkidle').catch(() => {})
+  await page.waitForTimeout(1000)
 }
 
 async function shot(page, name, url, action) {
-  await page.goto(url, { waitUntil: 'networkidle' })
+  await page.goto(url, { waitUntil: 'domcontentloaded' })
+  await page.waitForLoadState('networkidle').catch(() => {})
   if (action) await action(page)
-  await page.waitForTimeout(600)
+  await page.waitForTimeout(800)
   const file = path.join(OUT, `${name}.png`)
   await page.screenshot({ path: file, fullPage: false })
   console.log('✓', name)
@@ -34,7 +36,7 @@ async function shot(page, name, url, action) {
 
 await mkdir(OUT, { recursive: true })
 
-const browser = await chromium.launch()
+const browser = await chromium.launch({ channel: 'chrome' })
 const page = await browser.newPage({ viewport: VIEWPORT })
 
 await shot(page, 'login', `${BASE}/login`)
@@ -46,13 +48,17 @@ await shot(page, 'log', `${BASE}/log`)
 await shot(page, 'guide', `${BASE}/guide?context=beach`)
 await shot(page, 'impact', `${BASE}/insights`)
 await shot(page, 'impact-family', `${BASE}/insights`, async (p) => {
-  await p.getByRole('button', { name: /family/i }).click()
-  await p.waitForTimeout(400)
+  await p.getByRole('radio', { name: /family/i }).click()
+  await p.waitForTimeout(500)
 })
-await shot(page, 'family', `${BASE}/family`)
 await shot(page, 'family-personal', `${BASE}/family`, async (p) => {
-  // Family page shows personal + household sections
-  await p.evaluate(() => window.scrollTo(0, 0))
+  await p.getByRole('radio', { name: /personal/i }).click()
+  await p.waitForTimeout(500)
+})
+await shot(page, 'family', `${BASE}/family`, async (p) => {
+  const familyTab = p.getByRole('radio', { name: /family/i })
+  if (await familyTab.isVisible()) await familyTab.click()
+  await p.waitForTimeout(500)
 })
 await shot(page, 'settings', `${BASE}/settings`)
 await shot(page, 'coach', `${BASE}/coach`, async (p) => {
