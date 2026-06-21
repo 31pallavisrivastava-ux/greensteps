@@ -48,6 +48,7 @@ authRouter.post('/login', async (req, res) => {
     res.json({ token, user: serializeUser(user) })
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
+    console.error('Login error:', e)
     res.status(500).json({ error: 'Login failed' })
   }
 })

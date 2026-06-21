@@ -17,6 +17,7 @@ import { engageRouter } from './routes/engage.js'
 import { groupsRouter } from './routes/groups.js'
 import { familyRouter } from './routes/family.js'
 import { coachRouter } from './routes/coach.js'
+import { prisma } from './lib/prisma.js'
 
 export function createApp() {
   const app = express()
@@ -25,12 +26,19 @@ export function createApp() {
   app.use(morgan('dev'))
   app.use(express.json({ limit: '2mb' }))
 
-  app.get('/api/health', (_req, res) => {
-    res.json({
-      status: 'ok',
-      service: 'carbon-footprint-api',
-      routes: ['insights/personal', 'insights/history', 'family', 'coach'],
-    })
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      res.json({
+        status: 'ok',
+        service: 'carbon-footprint-api',
+        db: 'connected',
+        routes: ['insights/personal', 'insights/history', 'family', 'coach'],
+      })
+    } catch (e) {
+      console.error('Health check DB error:', e)
+      res.status(503).json({ status: 'degraded', error: 'Database unavailable' })
+    }
   })
 
   app.use('/api/auth', authRouter)
