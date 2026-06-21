@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w shared && npm run build -w client",
-    "start": "npm run start:prod -w server",
+    "start": "node server/scripts/render-start.js",
     "db:generate": "npm run db:generate -w server",
     "db:push": "npm run db:push -w server",
     "db:seed": "npm run db:seed -w server",

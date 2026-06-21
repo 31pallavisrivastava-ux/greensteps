@@ -5,10 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "prestart": "prisma generate",
-    "start": "node src/server.js",
-    "start:prod": "prisma generate && prisma db push && node prisma/seed.js && node src/server.js",
-    "postinstall": "prisma generate",
+    "start": "node scripts/render-start.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
@@ -16,14 +13,14 @@
   },
   "dependencies": {
     "@carbon/shared": "*",
-    "@prisma/client": "^6.8.2",
+    "@prisma/client": "6.19.3",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "prisma": "^6.8.2",
+    "prisma": "6.19.3",
     "zod": "^3.25.28"
   }
 }

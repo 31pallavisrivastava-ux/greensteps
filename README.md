@@ -217,6 +217,16 @@ npm run dev
 5. Paste that URL in your challenge submission as the **Deployed Link**.
 6. Test: open the URL → sign in with `demo@carbon.local` / `demo1234`.
 
+**Render dashboard settings (if not using Blueprint):**
+
+| Setting | Value |
+|---------|--------|
+| **Start Command** | `node server/scripts/render-start.js` |
+| **Build Command** | `npm install && npm run build && npm run db:generate -w server` |
+| **DATABASE_URL** | `file:./prisma/data.db` |
+
+Do **not** use `npm start` alone on Render — the boot script must run migrate + seed before the API listens.
+
 **What to expect on free tier:**
 
 - **Cold starts** — first visit after ~15 min idle may take 30–60 s to wake up.
