@@ -1,5 +1,5 @@
 /** Phase 2: Zomato order email/OCR parser stub */
-export function parseZomatoOrder(raw) {
+export function parseZomatoOrder(_raw) {
   return {
     merchant: 'ZOMATO',
     lineItems: [],

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Camera, FileText, Loader2, Sun, Zap } from 'lucide-react'
 import { api } from '../lib/api'
+import { useSaveFeedback } from '../lib/useSaveFeedback'
 import type { ActionReward, BillOcrResult } from '@carbon/shared'
 import { CelebrationBanner } from '../components/rewards'
 import { PageHeader, EmptyState } from '../components/ui'
@@ -42,7 +43,7 @@ export function EnergyPage() {
       .slice(0, 10),
     periodEnd: new Date().toISOString().slice(0, 10),
   })
-  const [saved, setSaved] = useState(false)
+  const { saved, markSaved } = useSaveFeedback()
   const [lastReward, setLastReward] = useState<ActionReward | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrResult, setOcrResult] = useState<BillOcrResult | null>(null)
@@ -112,8 +113,7 @@ export function EnergyPage() {
       ocrResult.rawText ??
       `Units Consumed: ${ocrResult.kwh} kWh\nPeriod: ${form.periodStart} to ${form.periodEnd}`
     await parseBillText(text, true)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    markSaved()
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -127,8 +127,7 @@ export function EnergyPage() {
       }),
     })
     if (res.reward) setLastReward(res.reward)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    markSaved()
     load()
   }
 

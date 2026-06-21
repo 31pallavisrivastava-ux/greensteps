@@ -1,5 +1,5 @@
 /** Phase 2: Swiggy order email/OCR parser stub */
-export function parseSwiggyOrder(raw) {
+export function parseSwiggyOrder(_raw) {
   return {
     merchant: 'SWIGGY_FOOD',
     lineItems: [],

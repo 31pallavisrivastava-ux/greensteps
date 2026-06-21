@@ -1,7 +1,7 @@
-import { Router } from 'express'
-import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
+import { route, withBody } from '../lib/router.js'
+import { coachChatSchema } from '../lib/schemas/coach.js'
 import { executeCoachTool } from '../modules/coach/tools.js'
 import {
   checkLlmHealth,
@@ -11,56 +11,48 @@ import {
   runAgenticCoach,
 } from '../modules/coach/agent.js'
 import { runFallbackCoach } from '../modules/coach/fallbackCoach.js'
+import { Router } from 'express'
 
 export const coachRouter = Router()
 
-coachRouter.get('/status', authMiddleware, async (_req, res) => {
-  const health = await checkLlmHealth()
-  res.json({
-    agentEnabled: health.reachable && health.hasModel !== false,
-    provider: getLlmProvider(),
-    model: getLlmModel(),
-    llmReachable: health.reachable,
-    modelReady: health.hasModel !== false,
-    hint: health.reason,
-    modelsAvailable: health.models ?? [],
-    tools: [
-      'get_personal_footprint',
-      'explain_footprint',
-      'get_weekly_trend',
-      'get_today_action',
-      'get_engagement_summary',
-    ],
-    description:
-      'Agentic coach uses an open-source local model via Ollama + tools; rules fallback when Ollama is offline.',
+coachRouter.get(
+  '/status',
+  authMiddleware,
+  route(async (_req, res) => {
+    const health = await checkLlmHealth()
+    res.json({
+      agentEnabled: health.reachable && health.hasModel !== false,
+      provider: getLlmProvider(),
+      model: getLlmModel(),
+      llmReachable: health.reachable,
+      modelReady: health.hasModel !== false,
+      hint: health.reason,
+      modelsAvailable: health.models ?? [],
+      tools: [
+        'get_personal_footprint',
+        'explain_footprint',
+        'get_weekly_trend',
+        'get_today_action',
+        'get_engagement_summary',
+      ],
+      description:
+        'Agentic coach uses an open-source local model via Ollama + tools; rules fallback when Ollama is offline.',
+    })
   })
-})
+)
 
-coachRouter.post('/chat', authMiddleware, async (req, res) => {
-  try {
-    const body = z
-      .object({
-        message: z.string().min(1).max(2000),
-        history: z
-          .array(
-            z.object({
-              role: z.enum(['user', 'assistant']),
-              content: z.string().max(4000),
-            })
-          )
-          .max(12)
-          .optional(),
-      })
-      .parse(req.body)
-
+coachRouter.post(
+  '/chat',
+  authMiddleware,
+  ...withBody(coachChatSchema, async (req, res) => {
+    const body = req.body
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     const history = body.history ?? []
     const executeTool = (name, args) => executeCoachTool(prisma, req.userId, user, name, args)
 
     let result
     const health = await checkLlmHealth()
-    const canRunAgent =
-      isAgentConfigured() && health.reachable && health.hasModel !== false
+    const canRunAgent = isAgentConfigured() && health.reachable && health.hasModel !== false
 
     if (canRunAgent) {
       try {
@@ -93,9 +85,5 @@ coachRouter.post('/chat', authMiddleware, async (req, res) => {
       model: result.model ?? getLlmModel(),
       provider: result.provider ?? getLlmProvider(),
     })
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    console.error(e)
-    res.status(500).json({ error: 'Coach request failed' })
-  }
-})
+  })
+)

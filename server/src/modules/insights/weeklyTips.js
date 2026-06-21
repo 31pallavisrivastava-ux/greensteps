@@ -4,7 +4,7 @@
  */
 export function buildWeeklyTips({
   totalKm,
-  publicKm,
+  publicKm: _publicKm,
   privateKm,
   quickCommerceOrders,
   foodDeliveryOrders,

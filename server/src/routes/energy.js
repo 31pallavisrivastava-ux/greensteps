@@ -1,35 +1,28 @@
-import { Router } from 'express'
-import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
-import { authMiddleware } from '../middleware/auth.js'
+import { authRouter, route, withBody, created } from '../lib/router.js'
+import { energyOcrSchema, energyReadingSchema } from '../lib/schemas/energy.js'
 import { computeEnergyEmissions } from '../modules/emissions/engine.js'
 import { computeEnergyReward } from '../modules/rewards/engine.js'
 import { parseUtilityBillText, SAMPLE_BILL_TEXT } from '../modules/ocr/utilityBillParser.js'
 
-export const energyRouter = Router()
-energyRouter.use(authMiddleware)
+export const energyRouter = authRouter()
 
-energyRouter.get('/', async (req, res) => {
-  const readings = await prisma.energyReading.findMany({
-    where: { userId: req.userId },
-    orderBy: { periodStart: 'desc' },
-  })
-  res.json(readings)
-})
-
-energyRouter.post('/', async (req, res) => {
-  try {
-    const body = z
-      .object({
-        periodStart: z.string(),
-        periodEnd: z.string(),
-        kwh: z.number().nonnegative(),
-        solarOffsetKwh: z.number().nonnegative().optional(),
-        lpgKg: z.number().nonnegative().optional(),
-        source: z.enum(['MANUAL', 'OCR']).optional(),
+energyRouter.get(
+  '/',
+  route(async (req, res) => {
+    res.json(
+      await prisma.energyReading.findMany({
+        where: { userId: req.userId },
+        orderBy: { periodStart: 'desc' },
       })
-      .parse(req.body)
+    )
+  })
+)
 
+energyRouter.post(
+  '/',
+  ...withBody(energyReadingSchema, async (req, res) => {
+    const body = req.body
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     const { co2eKg } = await computeEnergyEmissions(
       prisma,
@@ -51,33 +44,20 @@ energyRouter.post('/', async (req, res) => {
         source: body.source === 'OCR' ? 'OCR' : 'MANUAL',
       },
     })
-    const reward = computeEnergyReward(reading)
-    res.status(201).json({ ...reading, reward })
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    res.status(500).json({ error: 'Failed to log energy reading' })
-  }
-})
+    created(res, { ...reading, reward: computeEnergyReward(reading) })
+  })
+)
 
-energyRouter.post('/ocr', async (req, res) => {
-  try {
-    const body = z
-      .object({
-        text: z.string().min(10),
-        save: z.boolean().optional(),
-        solarOffsetKwh: z.number().nonnegative().optional(),
-        lpgKg: z.number().nonnegative().optional(),
-      })
-      .parse(req.body)
-
+energyRouter.post(
+  '/ocr',
+  ...withBody(energyOcrSchema, async (req, res) => {
+    const body = req.body
     const parsed = parseUtilityBillText(body.text)
     if (!parsed.kwh) {
       return res.status(422).json({ error: 'Could not parse kWh from bill text', ...parsed })
     }
 
-    if (!body.save) {
-      return res.json(parsed)
-    }
+    if (!body.save) return res.json(parsed)
 
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     const { co2eKg } = await computeEnergyEmissions(
@@ -100,13 +80,9 @@ energyRouter.post('/ocr', async (req, res) => {
         source: 'OCR',
       },
     })
-    const reward = computeEnergyReward(reading)
-    res.status(201).json({ ...parsed, reading, reward })
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    res.status(500).json({ error: 'OCR parse failed' })
-  }
-})
+    created(res, { ...parsed, reading, reward: computeEnergyReward(reading) })
+  })
+)
 
 energyRouter.get('/ocr/sample', (_req, res) => {
   res.json({ text: SAMPLE_BILL_TEXT.trim() })

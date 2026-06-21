@@ -15,10 +15,15 @@
     "db:push": "npm run db:push -w server",
     "db:seed": "npm run db:seed -w server",
     "test": "npm run test -w server",
+    "lint": "eslint .",
     "screenshots": "node scripts/capture-screenshots.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.28.0",
     "concurrently": "^9.1.2",
-    "playwright": "^1.50.0"
+    "eslint": "^9.28.0",
+    "globals": "^16.2.0",
+    "playwright": "^1.50.0",
+    "typescript-eslint": "^8.33.0"
   }
 }

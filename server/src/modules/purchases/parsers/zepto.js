@@ -1,5 +1,5 @@
 /** Phase 2: Zepto order email parser stub */
-export function parseZeptoEmail(rawEmail) {
+export function parseZeptoEmail(_rawEmail) {
   return {
     merchant: 'ZEPTO',
     lineItems: [],

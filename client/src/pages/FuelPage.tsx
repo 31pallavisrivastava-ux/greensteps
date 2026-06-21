@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Fuel, IndianRupee } from 'lucide-react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { usePageLoad } from '../lib/usePageLoad'
+import { useSaveFeedback } from '../lib/useSaveFeedback'
 import { PageHeader, EmptyState } from '../components/ui'
 
 interface FuelPurchase {
@@ -15,17 +17,14 @@ interface FuelPurchase {
 
 export function FuelPage() {
   const { user } = useAuth()
-  const [purchases, setPurchases] = useState<FuelPurchase[]>([])
+  const { data: purchases, reload } = usePageLoad(() => api<FuelPurchase[]>('/fuel'))
+  const { saved, markSaved } = useSaveFeedback()
   const [form, setForm] = useState({
     liters: 2,
     amountInr: 200,
     vehicleId: '',
     purchasedAt: new Date().toISOString().slice(0, 16),
   })
-  const [saved, setSaved] = useState(false)
-
-  const load = () => api<FuelPurchase[]>('/fuel').then(setPurchases).catch(console.error)
-  useEffect(() => { load() }, [])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,9 +36,8 @@ export function FuelPage() {
         vehicleId: form.vehicleId || undefined,
       }),
     })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    load()
+    markSaved()
+    reload()
   }
 
   return (
@@ -115,7 +113,7 @@ export function FuelPage() {
       </form>
 
       <h2 className="section-title">Previous entries</h2>
-      {purchases.length === 0 ? (
+      {(!purchases || purchases.length === 0) ? (
         <EmptyState
           icon={Fuel}
           title="No fuel logged yet"
@@ -123,7 +121,7 @@ export function FuelPage() {
         />
       ) : (
         <div className="space-y-3">
-          {purchases.map((p) => (
+          {(purchases ?? []).map((p) => (
             <div key={p.id} className="card flex items-center gap-4">
               <div className="icon-circle bg-red-50">
                 <Fuel className="h-6 w-6 text-red-600" aria-hidden />

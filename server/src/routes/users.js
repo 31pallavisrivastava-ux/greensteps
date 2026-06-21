@@ -1,60 +1,52 @@
-import { Router } from 'express'
-import { z } from 'zod'
-import { authMiddleware } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { serializeUser } from '../lib/userProfile.js'
+import { authRouter, route, withBody, created } from '../lib/router.js'
+import { createVehicleSchema, updateProfileSchema } from '../lib/schemas/user.js'
 import { INDIAN_CITIES } from '../modules/engage/engine.js'
+import { Router } from 'express'
 
 export const packagingRouter = Router()
 
-packagingRouter.get('/catalog', async (req, res) => {
-  const orderType = req.query.orderType
-  const items = await prisma.packagingCatalogItem.findMany()
-  const filtered = orderType
-    ? items.filter((i) => i.orderTypes.includes(String(orderType)))
-    : items
-  res.json(
-    filtered.map((i) => ({
-      id: i.id,
-      category: i.category,
-      label: i.label,
-      orderTypes: [i.orderTypes],
-      plasticGramsPerUnit: i.plasticGramsPerUnit,
-      plasticType: i.plasticType,
-      co2ePerUnitKg: i.co2ePerUnitKg,
-    }))
-  )
-})
-
-export const usersRouter = Router()
-usersRouter.use(authMiddleware)
-
-usersRouter.get('/me', async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.userId },
-    include: { vehicles: true },
+packagingRouter.get(
+  '/catalog',
+  route(async (req, res) => {
+    const orderType = req.query.orderType
+    const items = await prisma.packagingCatalogItem.findMany()
+    const filtered = orderType
+      ? items.filter((i) => i.orderTypes.includes(String(orderType)))
+      : items
+    res.json(
+      filtered.map((i) => ({
+        id: i.id,
+        category: i.category,
+        label: i.label,
+        orderTypes: [i.orderTypes],
+        plasticGramsPerUnit: i.plasticGramsPerUnit,
+        plasticType: i.plasticType,
+        co2ePerUnitKg: i.co2ePerUnitKg,
+      }))
+    )
   })
-  if (!user) return res.status(404).json({ error: 'Not found' })
-  res.json(serializeUser(user))
-})
+)
 
-usersRouter.patch('/me', async (req, res) => {
-  try {
-    const body = z
-      .object({
-        name: z.string().optional(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        homeLat: z.number().optional(),
-        homeLng: z.number().optional(),
-        workLat: z.number().optional(),
-        workLng: z.number().optional(),
-        onboardingCompleted: z.boolean().optional(),
-        transportPreference: z.enum(['CAR', 'BUS_METRO', 'WALK_CYCLE', 'MIXED']).optional(),
-        topConcern: z.enum(['POWER', 'TRAVEL', 'DELIVERY', 'PLASTIC']).optional(),
-      })
-      .parse(req.body)
+export const usersRouter = authRouter()
 
+usersRouter.get(
+  '/me',
+  route(async (req, res) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      include: { vehicles: true },
+    })
+    if (!user) return res.status(404).json({ error: 'Not found' })
+    res.json(serializeUser(user))
+  })
+)
+
+usersRouter.patch(
+  '/me',
+  ...withBody(updateProfileSchema, async (req, res) => {
+    const body = req.body
     const data = { ...body }
     if (body.city && INDIAN_CITIES[body.city]) {
       const meta = INDIAN_CITIES[body.city]
@@ -69,28 +61,17 @@ usersRouter.patch('/me', async (req, res) => {
       include: { vehicles: true },
     })
     res.json(serializeUser(user))
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    res.status(500).json({ error: 'Update failed' })
-  }
-})
+  })
+)
 
-usersRouter.post('/vehicles', async (req, res) => {
-  try {
-    const body = z
-      .object({
-        label: z.string(),
-        fuelType: z.enum(['PETROL', 'DIESEL', 'CNG', 'EV']),
-        mileageKmpl: z.number().optional(),
+usersRouter.post(
+  '/vehicles',
+  ...withBody(createVehicleSchema, async (req, res) => {
+    created(
+      res,
+      await prisma.vehicle.create({
+        data: { userId: req.userId, ...req.body },
       })
-      .parse(req.body)
-
-    const vehicle = await prisma.vehicle.create({
-      data: { userId: req.userId, ...body },
-    })
-    res.status(201).json(vehicle)
-  } catch (e) {
-    if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
-    res.status(500).json({ error: 'Failed to add vehicle' })
-  }
-})
+    )
+  })
+)

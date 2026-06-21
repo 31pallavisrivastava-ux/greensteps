@@ -1,11 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { MERCHANTS, DeliveryMerchant } from '@carbon/shared'
 import type { PackagingCatalogItemDto } from '@carbon/shared'
 import { Package, Plus, ShoppingBag } from 'lucide-react'
 import { api } from '../lib/api'
+import { usePageLoad } from '../lib/usePageLoad'
+import { useSaveFeedback } from '../lib/useSaveFeedback'
 import { PageHeader, EmptyState } from '../components/ui'
 
 interface LineItem { catalogId?: string; label: string; quantity: number }
+
+interface Order {
+  id: string
+  merchant: string
+  orderedAt: string
+  plasticGrams: number
+  deliveryCo2eKg: number
+  lineItems: Array<{ label: string; quantity: number }>
+}
 
 const MERCHANT_ICONS: Record<string, string> = {
   BLINKIT: 'bg-yellow-100 text-yellow-800',
@@ -17,29 +28,16 @@ const MERCHANT_ICONS: Record<string, string> = {
 
 export function PurchasesPage() {
   const [merchant, setMerchant] = useState<DeliveryMerchant>(DeliveryMerchant.BLINKIT)
-  const [catalog, setCatalog] = useState<PackagingCatalogItemDto[]>([])
   const [cart, setCart] = useState<LineItem[]>([])
-  const [orders, setOrders] = useState<Array<{
-    id: string
-    merchant: string
-    orderedAt: string
-    plasticGrams: number
-    deliveryCo2eKg: number
-    lineItems: Array<{ label: string; quantity: number }>
-  }>>([])
-  const [saved, setSaved] = useState(false)
+  const { saved, markSaved } = useSaveFeedback()
+  const { data: orders, reload: loadOrders } = usePageLoad(() => api<Order[]>('/purchases'))
 
   const merchantInfo = MERCHANTS.find((m) => m.merchant === merchant)!
   const orderType = merchantInfo.orderType
-
-  useEffect(() => {
-    api<PackagingCatalogItemDto[]>(`/packaging/catalog?orderType=${orderType}`)
-      .then(setCatalog)
-      .catch(console.error)
-  }, [orderType])
-
-  const loadOrders = () => api<typeof orders>('/purchases').then(setOrders).catch(console.error)
-  useEffect(() => { loadOrders() }, [])
+  const { data: catalog } = usePageLoad(
+    () => api<PackagingCatalogItemDto[]>(`/packaging/catalog?orderType=${orderType}`),
+    [orderType]
+  )
 
   const addItem = (item: PackagingCatalogItemDto) => {
     setCart((prev) => {
@@ -64,8 +62,7 @@ export function PurchasesPage() {
       }),
     })
     setCart([])
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    markSaved()
     loadOrders()
   }
 
@@ -99,7 +96,7 @@ export function PurchasesPage() {
           {orderType === 'QUICK_COMMERCE' ? 'Tap groceries you ordered' : 'Tap food items you ordered'}
         </p>
         <div className="flex flex-wrap gap-2">
-          {catalog.map((item) => (
+          {(catalog ?? []).map((item) => (
             <button
               key={item.id}
               type="button"
@@ -138,7 +135,7 @@ export function PurchasesPage() {
       </div>
 
       <h2 className="section-title">Past orders</h2>
-      {orders.length === 0 ? (
+      {(!orders || orders.length === 0) ? (
         <EmptyState
           icon={Package}
           title="No deliveries logged yet"
@@ -146,7 +143,7 @@ export function PurchasesPage() {
         />
       ) : (
         <div className="space-y-3">
-          {orders.map((o) => (
+          {(orders ?? []).map((o) => (
             <div key={o.id} className="card flex gap-4">
               <div className={`icon-circle ${MERCHANT_ICONS[o.merchant]?.split(' ')[0] ?? 'bg-slate-100'}`}>
                 <ShoppingBag className={`h-6 w-6 ${MERCHANT_ICONS[o.merchant]?.split(' ')[1] ?? 'text-slate-600'}`} aria-hidden />

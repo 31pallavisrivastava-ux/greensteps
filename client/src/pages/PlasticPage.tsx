@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Recycle, Trash2, Droplets } from 'lucide-react'
 import { api } from '../lib/api'
 import type { PlasticSummary } from '@carbon/shared'
@@ -8,6 +8,8 @@ import { CelebrationBanner } from '../components/rewards'
 import { PageHeader, EmptyState, LoadingScreen } from '../components/ui'
 import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
 import { useRadioGroup } from '../lib/useRadioGroup'
+import { usePageLoad } from '../lib/usePageLoad'
+import { useSaveFeedback } from '../lib/useSaveFeedback'
 
 const PLASTIC_TYPES = [
   { id: 'PET', label: 'Water bottle (PET)' },
@@ -25,8 +27,10 @@ const DISPOSAL = [
 ] as const
 
 export function PlasticPage() {
-  const [summary, setSummary] = useState<PlasticSummary | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: summary, loading, reload } = usePageLoad(() =>
+    api<PlasticSummary>('/plastic/summary?period=week')
+  )
+  const { saved, markSaved } = useSaveFeedback()
   const [form, setForm] = useState({
     plasticType: 'PET' as (typeof PLASTIC_TYPES)[number]['id'],
     grams: 25,
@@ -34,7 +38,6 @@ export function PlasticPage() {
     occurredAt: new Date().toISOString().slice(0, 16),
     notes: '',
   })
-  const [saved, setSaved] = useState(false)
   const [lastReward, setLastReward] = useState<ActionReward | null>(null)
   const disposalIds = DISPOSAL.map((d) => d.id)
   const { onKeyDown: onDisposalKeyDown } = useRadioGroup(
@@ -42,14 +45,6 @@ export function PlasticPage() {
     disposalIds,
     (id) => setForm({ ...form, disposalMethod: id })
   )
-
-  const load = () =>
-    api<PlasticSummary>('/plastic/summary?period=week')
-      .then(setSummary)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-
-  useEffect(() => { load() }, [])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,9 +56,8 @@ export function PlasticPage() {
       }),
     })
     if (res.reward) setLastReward(res.reward)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    load()
+    markSaved()
+    reload()
   }
 
   const chartData = summary

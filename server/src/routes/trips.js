@@ -1,7 +1,7 @@
-import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
-import { authMiddleware } from '../middleware/auth.js'
-import { asyncHandler, parseOptionalDate } from '../lib/http.js'
+import { parseOptionalDate } from '../lib/http.js'
+import { authRouter, route, withBody, withParamsAndBody, created } from '../lib/router.js'
+import { uuidParamSchema } from '../lib/schemas/common.js'
 import {
   confirmTripSchema,
   manualTripSchema,
@@ -14,8 +14,7 @@ import {
 } from '../modules/emissions/engine.js'
 import { computeTripReward } from '../modules/rewards/engine.js'
 
-export const tripsRouter = Router()
-tripsRouter.use(authMiddleware)
+export const tripsRouter = authRouter()
 
 function mapTrip(t) {
   return {
@@ -36,7 +35,7 @@ function mapTrip(t) {
 
 tripsRouter.get(
   '/',
-  asyncHandler(async (req, res) => {
+  route(async (req, res) => {
     const from = parseOptionalDate(req.query.from, 'from')
     const to = parseOptionalDate(req.query.to, 'to')
     const trips = await prisma.trip.findMany({
@@ -52,30 +51,34 @@ tripsRouter.get(
 
 tripsRouter.post(
   '/draft',
-  asyncHandler(async (req, res) => {
-    const body = tripDraftSchema.parse(req.body)
+  ...withBody(tripDraftSchema, async (req, res) => {
+    const body = req.body
     const { mode, confidence } = inferModeFromPoints(body.points, body.distanceKm)
-    const trip = await prisma.trip.create({
-      data: {
-        userId: req.userId,
-        startedAt: new Date(body.startedAt),
-        endedAt: new Date(body.endedAt),
-        distanceKm: body.distanceKm,
-        suggestedMode: mode,
-        isCommute: body.isCommute ?? false,
-        source: 'GPS',
-        confidence,
-        routePolyline: JSON.stringify(body.points),
-      },
-    })
-    res.status(201).json(mapTrip(trip))
+    created(
+      res,
+      mapTrip(
+        await prisma.trip.create({
+          data: {
+            userId: req.userId,
+            startedAt: new Date(body.startedAt),
+            endedAt: new Date(body.endedAt),
+            distanceKm: body.distanceKm,
+            suggestedMode: mode,
+            isCommute: body.isCommute ?? false,
+            source: 'GPS',
+            confidence,
+            routePolyline: JSON.stringify(body.points),
+          },
+        })
+      )
+    )
   })
 )
 
 tripsRouter.post(
   '/manual',
-  asyncHandler(async (req, res) => {
-    const body = manualTripSchema.parse(req.body)
+  ...withBody(manualTripSchema, async (req, res) => {
+    const body = req.body
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     const vehicle = body.vehicleId
       ? await prisma.vehicle.findFirst({ where: { id: body.vehicleId, userId: req.userId } })
@@ -110,15 +113,14 @@ tripsRouter.post(
         fuelLitersEst: emissions.fuelLitersEst,
       },
     })
-    const reward = computeTripReward(trip)
-    res.status(201).json({ ...mapTrip(trip), reward })
+    created(res, { ...mapTrip(trip), reward: computeTripReward(trip) })
   })
 )
 
 tripsRouter.patch(
   '/:id/confirm',
-  asyncHandler(async (req, res) => {
-    const body = confirmTripSchema.parse(req.body)
+  ...withParamsAndBody(uuidParamSchema, confirmTripSchema, async (req, res) => {
+    const body = req.body
     const trip = await prisma.trip.findFirst({
       where: { id: req.params.id, userId: req.userId },
     })
@@ -148,7 +150,6 @@ tripsRouter.patch(
         fuelLitersEst: emissions.fuelLitersEst,
       },
     })
-    const reward = computeTripReward(updated)
-    res.json({ ...mapTrip(updated), reward })
+    res.json({ ...mapTrip(updated), reward: computeTripReward(updated) })
   })
 )

@@ -1,7 +1,5 @@
-import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
-import { authMiddleware } from '../middleware/auth.js'
-import { asyncHandler } from '../lib/http.js'
+import { authRouter, route } from '../lib/router.js'
 import {
   aggregateFootprint,
   aggregatePlastic,
@@ -13,40 +11,35 @@ import { getWeeklyHistory, explainFootprint } from '../modules/insights/history.
 import { getPersonalFootprint } from '../modules/family/engine.js'
 import { buildWeeklyTips, computeCommuteSplit } from '../modules/insights/weeklyTips.js'
 
-export const emissionsRouter = Router()
-emissionsRouter.use(authMiddleware)
+export const emissionsRouter = authRouter()
 
 emissionsRouter.get(
   '/summary',
-  asyncHandler(async (req, res) => {
+  route(async (req, res) => {
     const period = req.query.period === 'week' ? 'week' : 'month'
-    const summary = await aggregateFootprint(prisma, req.userId, period)
-    res.json(summary)
+    res.json(await aggregateFootprint(prisma, req.userId, period))
   })
 )
 
 emissionsRouter.get(
   '/factors',
-  asyncHandler(async (_req, res) => {
-    const factors = await getAllFactors(prisma)
-    res.json(factors)
+  route(async (_req, res) => {
+    res.json(await getAllFactors(prisma))
   })
 )
 
-export const insightsRouter = Router()
-insightsRouter.use(authMiddleware)
+export const insightsRouter = authRouter()
 
 insightsRouter.get(
   '/personal',
-  asyncHandler(async (req, res) => {
-    const personal = await getPersonalFootprint(prisma, req.userId)
-    res.json(personal)
+  route(async (req, res) => {
+    res.json(await getPersonalFootprint(prisma, req.userId))
   })
 )
 
 insightsRouter.get(
   '/weekly',
-  asyncHandler(async (req, res) => {
+  route(async (req, res) => {
     const footprint = await aggregateFootprint(prisma, req.userId, 'week')
     const plastic = await aggregatePlastic(prisma, req.userId, 'week')
 
@@ -102,17 +95,15 @@ insightsRouter.get(
 
 insightsRouter.get(
   '/history',
-  asyncHandler(async (req, res) => {
+  route(async (req, res) => {
     const weeks = Math.min(24, Math.max(4, Number(req.query.weeks) || 12))
-    const history = await getWeeklyHistory(prisma, req.userId, weeks)
-    res.json(history)
+    res.json(await getWeeklyHistory(prisma, req.userId, weeks))
   })
 )
 
 insightsRouter.get(
   '/explain',
-  asyncHandler(async (req, res) => {
-    const explanation = await explainFootprint(prisma, req.userId)
-    res.json(explanation)
+  route(async (req, res) => {
+    res.json(await explainFootprint(prisma, req.userId))
   })
 )

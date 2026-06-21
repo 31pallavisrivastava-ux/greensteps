@@ -3,8 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { serializeUser } from '../lib/userProfile.js'
-import { asyncHandler } from '../lib/http.js'
-import { validateBody } from '../middleware/validate.js'
+import { route, withBody, created } from '../lib/router.js'
 import { loginSchema, registerSchema } from '../lib/schemas/auth.js'
 import { getTokenFromHeader, signToken, verifyTokenForRefresh } from '../lib/jwt.js'
 
@@ -16,8 +15,7 @@ function tokenResponse(user) {
 
 authRouter.post(
   '/register',
-  validateBody(registerSchema),
-  asyncHandler(async (req, res) => {
+  ...withBody(registerSchema, async (req, res) => {
     const body = req.body
     const existing = await prisma.user.findUnique({ where: { email: body.email } })
     if (existing) return res.status(409).json({ error: 'Email already registered' })
@@ -31,14 +29,13 @@ authRouter.post(
         state: body.state,
       },
     })
-    res.status(201).json(tokenResponse(user))
+    created(res, tokenResponse(user))
   })
 )
 
 authRouter.post(
   '/login',
-  validateBody(loginSchema),
-  asyncHandler(async (req, res) => {
+  ...withBody(loginSchema, async (req, res) => {
     const { email, password } = req.body
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
@@ -51,7 +48,7 @@ authRouter.post(
 /** Issue a new JWT when the current one is valid or recently expired. */
 authRouter.post(
   '/refresh',
-  asyncHandler(async (req, res) => {
+  route(async (req, res) => {
     const token = getTokenFromHeader(req.headers.authorization)
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized', code: 'NO_TOKEN' })
@@ -76,7 +73,7 @@ authRouter.post(
 authRouter.post(
   '/logout',
   authMiddleware,
-  asyncHandler(async (_req, res) => {
+  route(async (_req, res) => {
     res.json({ ok: true })
   })
 )

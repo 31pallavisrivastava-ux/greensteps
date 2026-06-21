@@ -122,7 +122,7 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 | **High** | Smart dynamic assistant | Priority rules engine, agentic Ollama coach with tool calls, context checklists, AQI nudges |
 | **High** | Context-based decisions | Onboarding profile + weekly footprint drive daily action |
 | **High** | Real-world usability | India merchants, CEA grid, mobile PWA, demo account |
-| **High** | Code quality | Shared Zod schemas, `validateBody`/`asyncHandler` routes, extracted engines, `ApiError` client layer, CI build + tests |
+| **High** | Code quality | All routes use `validateBody`/`asyncHandler`, Zod schemas in `server/src/lib/schemas/`, ESLint in CI |
 | **Medium** | Security | Helmet + HSTS, dual rate limits, JWT + bcrypt, Zod validation, UUID param checks, production secret guard |
 | **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
 | **Medium** | Testing | `npm test` — **67 tests** across 17 suites; GitHub Actions CI (tests + build) on every push |
@@ -411,9 +411,10 @@ Interactive checklists for where you are today:
 
 - **Shared contracts** — `@carbon/shared` enums (e.g. `TransportMode`) reused in Zod schemas and UI
 - **HTTP helpers** — `asyncHandler`, `validateBody`/`validateParams`, global Zod/400 error handler
-- **DRY utilities** — `generateUniqueJoinCode`, `buildWeeklyTips`, shared auth/group schemas in `server/src/lib/schemas/`
+- **DRY utilities** — `generateUniqueJoinCode`, `buildWeeklyTips`, domain schemas under `server/src/lib/schemas/`
 - **Client API layer** — `ApiError` with HTTP status + `getErrorMessage()` for consistent UI errors
-- **CI** — GitHub Actions runs `npm test` and `npm run build` on every push
+- **Linting** — ESLint 9 (flat config) for client TypeScript and server JavaScript; `npm run lint` in CI
+- **CI** — GitHub Actions runs lint, `npm test`, and `npm run build` on every push
 
 ## Family tracking
 
@@ -492,6 +493,7 @@ carbon-footprint-pwa/
 ```bash
 npm run dev          # client :5173 + server :3001
 npm run build        # shared → server → client
+npm run lint         # ESLint — client TS + server JS (CI on push)
 npm run test         # 67 tests: unit + API integration (CI on push)
 npm run db:push      # apply Prisma schema (required after model changes)
 npm run db:seed      # emission factors, merchants, demo user

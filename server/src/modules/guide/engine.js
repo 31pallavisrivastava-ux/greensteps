@@ -152,7 +152,7 @@ export function buildMilestoneShare({ userName, rewards, comparison }) {
   return {
     title: `${name} saved ${rewards.co2SavedKg} kg CO₂ this week!`,
     text: lines.join('\n'),
-    url: typeof window !== 'undefined' ? window.location.origin : '',
+    url: process.env.PUBLIC_URL ?? '',
   }
 }
 

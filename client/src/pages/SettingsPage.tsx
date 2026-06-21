@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Settings } from 'lucide-react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { useSaveFeedback } from '../lib/useSaveFeedback'
 import { CityPicker } from '../components/CityPicker'
 import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
 import { PageHeader } from '../components/ui'
@@ -26,7 +27,7 @@ export function SettingsPage() {
   const [city, setCity] = useState(user?.city ?? '')
   const [transport, setTransport] = useState<TransportPreference>(user?.transportPreference ?? 'MIXED')
   const [concern, setConcern] = useState<TopConcern>(user?.topConcern ?? 'POWER')
-  const [saved, setSaved] = useState(false)
+  const { saved, markSaved } = useSaveFeedback(2000)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -50,8 +51,7 @@ export function SettingsPage() {
         body: JSON.stringify({ city, transportPreference: transport, topConcern: concern }),
       })
       await refreshUser()
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      markSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
     }
