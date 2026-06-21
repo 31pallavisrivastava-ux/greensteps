@@ -48,13 +48,20 @@ export function ChallengesCard({ challenges, compact }: { challenges: WeeklyChal
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-900">{c.title}</p>
                 {c.completed ? (
-                  <Check className="h-4 w-4 text-emerald-600" aria-label="Done" />
+                  <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
                 ) : (
                   <span className="text-xs text-slate-500">{c.current}/{c.target}</span>
                 )}
               </div>
               {!compact && <p className="text-xs text-slate-500">{c.description}</p>}
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <div 
+                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100"
+                role="progressbar"
+                aria-valuenow={c.current}
+                aria-valuemin={0}
+                aria-valuemax={c.target}
+                aria-label={`Progress: ${c.current} of ${c.target} for ${c.title}`}
+              >
                 <div
                   className={`h-full rounded-full ${c.completed ? 'bg-emerald-500' : 'bg-brand'}`}
                   style={{ width: `${c.progressPct}%` }}

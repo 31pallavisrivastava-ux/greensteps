@@ -29,7 +29,14 @@ export function EngagePanel({ dashboard, variant = 'impact' }: EngagePanelProps)
             <ChallengeBusIllustration className="h-11 w-11 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-indigo-950">{topChallenge.title}</p>
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/80">
+              <div 
+                className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/80"
+                role="progressbar"
+                aria-valuenow={topChallenge.current}
+                aria-valuemin={0}
+                aria-valuemax={topChallenge.target}
+                aria-label={`Progress: ${topChallenge.current} of ${topChallenge.target} for ${topChallenge.title}`}
+              >
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
                   style={{ width: `${topChallenge.progressPct}%` }}

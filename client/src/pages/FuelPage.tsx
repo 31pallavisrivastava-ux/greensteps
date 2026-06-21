@@ -49,7 +49,7 @@ export function FuelPage() {
         help="Enter the number of litres from your bill. This helps calculate carbon from your vehicle."
       />
 
-      <form onSubmit={submit} className="card space-y-4">
+      <form onSubmit={submit} className="card space-y-4" aria-describedby="page-help-text">
         <div>
           <label className="label" htmlFor="liters">Litres filled</label>
           <input
@@ -60,8 +60,9 @@ export function FuelPage() {
             min={0.1}
             value={form.liters}
             onChange={(e) => setForm({ ...form, liters: +e.target.value })}
+            aria-describedby="liters-hint"
           />
-          <p className="hint">Look on your petrol pump receipt</p>
+          <p id="liters-hint" className="hint">Look on your petrol pump receipt</p>
         </div>
 
         <div>
@@ -110,6 +111,11 @@ export function FuelPage() {
         </button>
         {submitError && (
           <p className="text-center text-sm font-medium text-red-600" role="alert">{submitError}</p>
+        )}
+        {saved && (
+          <p className="text-center text-sm font-medium text-emerald-700 animate-fade-in" role="status" aria-live="polite">
+            Fuel entry saved
+          </p>
         )}
       </form>
 

@@ -70,25 +70,32 @@ export function PurchasesPage() {
         help="Step 1: Pick the app you ordered from. Step 2: Tap items you received. Step 3: Press Save. We estimate plastic and delivery pollution."
       />
 
-      <div className="card">
-        <p className="label">Which app did you order from?</p>
-        <div className="flex flex-wrap gap-2">
-          {MERCHANTS.map((m) => (
-            <button
-              key={m.merchant}
-              type="button"
-              onClick={() => { setMerchant(m.merchant); setCart([]) }}
-              className={`chip ${merchant === m.merchant ? 'chip-active' : 'chip-inactive'}`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+      <div className="card" aria-describedby="page-help-text">
+        <fieldset className="space-y-4">
+          <legend className="label">Which app did you order from?</legend>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Delivery app">
+            {MERCHANTS.map((m) => {
+              const active = merchant === m.merchant
+              return (
+                <button
+                  key={m.merchant}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => { setMerchant(m.merchant); setCart([]) }}
+                  className={`chip ${active ? 'chip-active' : 'chip-inactive'}`}
+                >
+                  {m.label}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
 
-        <p className="label mt-5">
+        <p className="label mt-5" id="items-label">
           {orderType === 'QUICK_COMMERCE' ? 'Tap groceries you ordered' : 'Tap food items you ordered'}
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-labelledby="items-label">
           {(catalog ?? []).map((item) => (
             <button
               key={item.id}
@@ -125,6 +132,11 @@ export function PurchasesPage() {
             </button>
             {submitError && (
               <p className="mt-2 text-center text-sm font-medium text-red-600" role="alert">{submitError}</p>
+            )}
+            {saved && (
+              <p className="mt-2 text-center text-sm font-medium text-emerald-700" role="status" aria-live="polite">
+                Order saved successfully
+              </p>
             )}
           </div>
         )}

@@ -133,7 +133,7 @@ export function TripsPage() {
         </p>
       )}
 
-      <div className={`card ${tracking ? 'border-2 border-brand ring-4 ring-brand/10' : ''}`}>
+      <div className={`card ${tracking ? 'border-2 border-brand ring-4 ring-brand/10' : ''}`} aria-describedby="page-help-text">
         <div className="flex items-center gap-3">
           <div className={`icon-circle ${tracking ? 'bg-brand' : 'bg-indigo-100'}`}>
             <Navigation className={`h-7 w-7 ${tracking ? 'text-white' : 'text-indigo-700'}`} aria-hidden />
@@ -142,7 +142,7 @@ export function TripsPage() {
             <h2 className="text-lg font-bold text-slate-900">
               {tracking ? 'Tracking your trip…' : 'Live GPS tracking'}
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500" aria-live="polite">
               Distance so far: <strong>{getTripDistanceKm(points).toFixed(1)} km</strong>
             </p>
           </div>
@@ -161,10 +161,10 @@ export function TripsPage() {
       </div>
 
       {pendingId && (
-        <div className="card border-2 border-brand/30 bg-brand-muted/50">
+        <div className="card border-2 border-brand/30 bg-brand-muted/50" role="status" aria-live="polite">
           <BlockSection label="How did you travel?" labelId="confirm-mode-label">
-            <p className="hint mb-2">Tap the option that best matches your trip</p>
-            <BlockGrid labelledBy="confirm-mode-label" onKeyDown={onModeKeyDown}>
+            <p id="confirm-mode-hint" className="hint mb-2">Tap the option that best matches your trip</p>
+            <BlockGrid labelledBy="confirm-mode-label" onKeyDown={onModeKeyDown} aria-describedby="confirm-mode-hint">
               {TRANSPORT_MODES.map((m) => {
                 const Icon = m.icon
                 return (

@@ -17,6 +17,7 @@ export function CelebrationBanner({ reward }: { reward: ActionReward }) {
         isCelebration ? 'border-emerald-200 bg-emerald-50' : 'border-sky-200 bg-sky-50'
       }`}
       role="status"
+      aria-live="polite"
     >
       {isCelebration ? (
         <PartyPopper className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden />

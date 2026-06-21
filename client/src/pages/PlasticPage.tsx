@@ -105,8 +105,8 @@ export function PlasticPage() {
         </div>
       )}
 
-      <form onSubmit={submit} className="card space-y-4">
-        <h3 className="text-lg font-bold text-slate-900">Log plastic you threw away</h3>
+      <form onSubmit={submit} className="card space-y-4" aria-describedby="page-help-text">
+        <h2 className="text-lg font-bold text-slate-900">Log plastic you threw away</h2>
 
         <div>
           <label className="label" htmlFor="type">Type of plastic</label>

@@ -87,14 +87,13 @@ export function Layout() {
           aria-label="Main menu"
         >
           <div className="grid grid-cols-4 px-1 py-1">
-            {nav.map(({ to, icon: Icon, label, short, end }) => {
+            {nav.map(({ to, icon: Icon, short, end }) => {
               const active = isNavActive(pathname, nav.find((n) => n.to === to)!)
               return (
                 <NavLink
                   key={to}
                   to={to}
                   end={end}
-                  aria-label={label}
                   aria-current={active ? 'page' : undefined}
                   className={`m-1 flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md border-2 py-2 text-[10px] font-black transition ${
                     active

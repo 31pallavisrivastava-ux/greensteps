@@ -204,7 +204,7 @@ export function EnergyPage() {
         )}
       </div>
 
-      <form onSubmit={submit} className="card space-y-4">
+      <form onSubmit={submit} className="card space-y-4" aria-describedby="page-help-text">
         <p className="text-sm font-semibold text-slate-700">Or enter manually</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -254,8 +254,9 @@ export function EnergyPage() {
             min={0}
             value={form.solarOffsetKwh}
             onChange={(e) => setForm({ ...form, solarOffsetKwh: +e.target.value })}
+            aria-describedby="solar-hint"
           />
-          <p className="hint">If you have solar panels, enter kWh they produced</p>
+          <p id="solar-hint" className="hint">If you have solar panels, enter kWh they produced</p>
         </div>
 
         <div>
@@ -268,8 +269,9 @@ export function EnergyPage() {
             min={0}
             value={form.lpgKg}
             onChange={(e) => setForm({ ...form, lpgKg: +e.target.value })}
+            aria-describedby="lpg-hint"
           />
-          <p className="hint">Set to 0 if you do not use LPG at home</p>
+          <p id="lpg-hint" className="hint">Set to 0 if you do not use LPG at home</p>
         </div>
 
         <button type="submit" className="btn-primary w-full" disabled={submitting}>
@@ -277,6 +279,11 @@ export function EnergyPage() {
         </button>
         {submitError && (
           <p className="text-center text-sm font-medium text-red-600" role="alert">{submitError}</p>
+        )}
+        {saved && (
+          <p className="text-center text-sm font-medium text-emerald-700 animate-fade-in" role="status" aria-live="polite">
+            Energy bill details saved
+          </p>
         )}
         {lastReward && <CelebrationBanner reward={lastReward} />}
       </form>

@@ -331,8 +331,10 @@ export function InsightsPage() {
               value={publicShift}
               onChange={(e) => setPublicShift(+e.target.value)}
               className="h-2 w-full accent-brand"
+              aria-valuetext={`+${publicShift}% public transport`}
+              aria-describedby="public-slider-desc"
             />
-            <p className="mt-1 text-sm text-emerald-700">Save ~{shiftSaved.toFixed(1)} kg/week</p>
+            <p id="public-slider-desc" className="mt-1 text-sm text-emerald-700">Save ~{shiftSaved.toFixed(1)} kg/week</p>
           </div>
           <div>
             <label className="label" htmlFor="order-slider">
@@ -346,8 +348,10 @@ export function InsightsPage() {
               value={orderReduction}
               onChange={(e) => setOrderReduction(+e.target.value)}
               className="h-2 w-full accent-brand"
+              aria-valuetext={`${orderReduction} fewer deliveries per week`}
+              aria-describedby="order-slider-desc"
             />
-            <p className="mt-1 text-sm text-emerald-700">
+            <p id="order-slider-desc" className="mt-1 text-sm text-emerald-700">
               Save ~{orderSaved.co2.toFixed(1)} kg + {orderSaved.plastic.toFixed(0)}g plastic
             </p>
           </div>

@@ -9,6 +9,8 @@ import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
 import { PageHeader } from '../components/ui'
 import type { TopConcern, TransportPreference } from '@carbon/shared'
 
+import { useRadioGroup } from '../lib/useRadioGroup'
+
 const TRANSPORT_OPTIONS: { id: TransportPreference; label: string }[] = [
   { id: 'CAR', label: 'Car / bike' },
   { id: 'BUS_METRO', label: 'Bus / metro' },
@@ -31,6 +33,11 @@ export function SettingsPage() {
   const { saved, markSaved } = useSaveFeedback(2000)
   const { submitting, error: submitError, run: runSubmit } = useSubmit()
   const [error, setError] = useState('')
+
+  const transportIds = TRANSPORT_OPTIONS.map((o) => o.id)
+  const concernIds = CONCERN_OPTIONS.map((o) => o.id)
+  const { onKeyDown: onTransportKeyDown } = useRadioGroup(transport, transportIds, setTransport)
+  const { onKeyDown: onConcernKeyDown } = useRadioGroup(concern, concernIds, setConcern)
 
   useEffect(() => {
     if (user) {
@@ -69,12 +76,12 @@ export function SettingsPage() {
         subtitle="Tap blocks to update your preferences"
       />
 
-      <form onSubmit={save} className="block-panel space-y-5">
+      <form onSubmit={save} className="block-panel space-y-5" aria-describedby="city-hint">
         <CityPicker value={city} onChange={setCity} />
-        <p className="hint -mt-2">CEA grid factor region and AQI nudges</p>
+        <p id="city-hint" className="hint -mt-2">CEA grid factor region and AQI nudges</p>
 
         <BlockSection label="Usual transport" labelId="settings-transport-label">
-          <BlockGrid labelledBy="settings-transport-label">
+          <BlockGrid labelledBy="settings-transport-label" onKeyDown={onTransportKeyDown}>
             {TRANSPORT_OPTIONS.map((o) => (
               <BlockOption
                 key={o.id}
@@ -89,7 +96,7 @@ export function SettingsPage() {
         </BlockSection>
 
         <BlockSection label="Top concern" labelId="settings-concern-label">
-          <BlockGrid labelledBy="settings-concern-label">
+          <BlockGrid labelledBy="settings-concern-label" onKeyDown={onConcernKeyDown} aria-describedby="concern-hint">
             {CONCERN_OPTIONS.map((o) => (
               <BlockOption
                 key={o.id}
@@ -101,7 +108,7 @@ export function SettingsPage() {
               </BlockOption>
             ))}
           </BlockGrid>
-          <p className="hint mt-2">Drives your &quot;Do this today&quot; card</p>
+          <p id="concern-hint" className="hint mt-2">Drives your &quot;Do this today&quot; card</p>
         </BlockSection>
 
         <button type="submit" className="btn-primary w-full" disabled={!city || submitting} aria-live="polite">

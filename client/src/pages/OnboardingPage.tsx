@@ -6,6 +6,7 @@ import { CityPicker } from '../components/CityPicker'
 import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
 import { SkipLink } from '../components/SkipLink'
 import { usePageTitle } from '../lib/usePageTitle'
+import { useRadioGroup } from '../lib/useRadioGroup'
 import type { TopConcern, TransportPreference, UserProfile } from '@carbon/shared'
 
 const STEP_KEY = 'greensteps_onboarding_step'
@@ -44,6 +45,11 @@ export function OnboardingPage() {
   const [concern, setConcern] = useState<TopConcern>(user?.topConcern ?? 'POWER')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const transportIds = TRANSPORT_OPTIONS.map((o) => o.id)
+  const concernIds = CONCERN_OPTIONS.map((o) => o.id)
+  const { onKeyDown: onTransportKeyDown } = useRadioGroup(transport, transportIds, setTransport)
+  const { onKeyDown: onConcernKeyDown } = useRadioGroup(concern, concernIds, setConcern)
 
   useEffect(() => {
     sessionStorage.setItem(STEP_KEY, String(step))
@@ -149,7 +155,7 @@ export function OnboardingPage() {
 
           {step === 1 && (
             <BlockSection label="Transport" labelId="transport-label">
-              <BlockGrid labelledBy="transport-label">
+              <BlockGrid labelledBy="transport-label" onKeyDown={onTransportKeyDown}>
                 {TRANSPORT_OPTIONS.map((opt) => (
                   <BlockOption
                     key={opt.id}
@@ -168,7 +174,7 @@ export function OnboardingPage() {
 
           {step === 2 && (
             <BlockSection label="Top concern" labelId="concern-label">
-              <BlockGrid labelledBy="concern-label">
+              <BlockGrid labelledBy="concern-label" onKeyDown={onConcernKeyDown}>
                 {CONCERN_OPTIONS.map((opt) => (
                   <BlockOption
                     key={opt.id}

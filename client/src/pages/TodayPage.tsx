@@ -66,7 +66,7 @@ export function TodayPage() {
       {engage && <EngagePanel dashboard={engage} variant="home" />}
 
       {pendingTrips.length > 0 && (
-        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3" role="status" aria-live="polite">
           <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-amber-950">

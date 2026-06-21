@@ -7,6 +7,7 @@ import { CelebrationBanner } from '../components/rewards'
 import { ShareCardButton } from '../components/engage/ShareCardButton'
 import { ContextBanner } from '../components/visuals/ContextBanner'
 import { CONTEXT_THEMES } from '../lib/visuals'
+import { useRadioGroup } from '../lib/useRadioGroup'
 
 interface ContextSummary {
   id: string
@@ -27,6 +28,9 @@ export function GuidePage() {
   const [tips, setTips] = useState<SustainabilityTip[]>([])
   const [lastReward, setLastReward] = useState<ActionReward | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  const contextIds = contexts.map((c) => c.id)
+  const { onKeyDown: onTabKeyDown } = useRadioGroup(activeId, contextIds, setActiveId)
 
   useEffect(() => {
     api<ContextSummary[]>('/guide/contexts').then(setContexts).catch(console.error)
@@ -71,16 +75,24 @@ export function GuidePage() {
         </Link>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist" aria-label="Guide contexts">
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 scrollbar-none"
+        role="tablist"
+        aria-label="Guide contexts"
+        onKeyDown={onTabKeyDown}
+      >
         {contexts.map((c) => {
           const active = activeId === c.id
           const theme = CONTEXT_THEMES[c.id as keyof typeof CONTEXT_THEMES]
           return (
             <button
               key={c.id}
+              id={`tab-${c.id.toLowerCase()}`}
               type="button"
               role="tab"
               aria-selected={active}
+              aria-controls={`tabpanel-${c.id.toLowerCase()}`}
+              tabIndex={active ? 0 : -1}
               onClick={() => setActiveId(c.id)}
               className={`chip shrink-0 ${
                 active && theme
@@ -96,7 +108,12 @@ export function GuidePage() {
       </div>
 
       {checklist && (
-        <>
+        <div
+          id={`tabpanel-${activeId.toLowerCase()}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${activeId.toLowerCase()}`}
+          className="space-y-4"
+        >
           <ContextBanner
             contextId={activeId as keyof typeof CONTEXT_THEMES}
             title={checklist.label}
@@ -119,6 +136,7 @@ export function GuidePage() {
                     <button
                       type="button"
                       onClick={() => toggle(item.id)}
+                      role="checkbox"
                       aria-checked={done}
                       className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
@@ -133,9 +151,9 @@ export function GuidePage() {
                     </button>
                     <button
                       type="button"
-                      className="shrink-0 p-1 text-slate-400"
+                      className="shrink-0 p-2.5 text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 rounded"
                       onClick={() => setExpanded(isOpen ? null : item.id)}
-                      aria-label="More info"
+                      aria-label={`More info for ${item.label}`}
                     >
                       <ChevronRight className={`h-4 w-4 transition ${isOpen ? 'rotate-90' : ''}`} />
                     </button>
@@ -177,12 +195,12 @@ export function GuidePage() {
             </div>
           )}
         </div>
-        </>
+        </div>
       )}
 
       {tips.length > 0 && (
         <div className="card">
-          <p className="section-title">Tips</p>
+          <h2 className="section-title text-base font-bold text-slate-900">Tips</h2>
           <ul className="mt-2 space-y-2">
             {tips.slice(0, 3).map((tip) => (
               <li key={tip.id} className="text-sm text-slate-600">
