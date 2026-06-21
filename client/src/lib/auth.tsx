@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api, clearToken, hasToken, setToken } from './api'
+import { api, clearToken, hasToken, setToken, setUnauthorizedHandler } from './api'
 import type { UserProfile, VehicleDto } from '@carbon/shared'
 
 interface AuthUser extends UserProfile {
@@ -11,7 +11,7 @@ interface AuthContextValue {
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name?: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   refreshUser: (opts?: { clearOnFailure?: boolean }) => Promise<AuthUser | null>
   setUserProfile: (user: AuthUser) => void
 }
@@ -21,6 +21,17 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      clearToken()
+      setUser(null)
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.assign('/login?session=expired')
+      }
+    })
+    return () => setUnauthorizedHandler(null)
+  }, [])
 
   const refreshUser = async (opts?: { clearOnFailure?: boolean }) => {
     const clearOnFailure = opts?.clearOnFailure ?? true
@@ -73,7 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshUser({ clearOnFailure: false })
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api('/auth/logout', { method: 'POST' })
+    } catch {
+      /* discard token even if API unreachable */
+    }
     clearToken()
     setUser(null)
   }

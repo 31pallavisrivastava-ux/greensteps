@@ -308,6 +308,35 @@ describe('API integration', () => {
     assert.equal(body.user.email, email)
   })
 
+  it('POST /api/auth/refresh issues a new token', async () => {
+    const { token } = await registerUser(`refresh-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/auth/refresh', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.ok(body.token)
+    const { status: meStatus } = await api('/api/insights/personal', {
+      headers: { Authorization: `Bearer ${body.token}` },
+    })
+    assert.equal(meStatus, 200)
+  })
+
+  it('POST /api/auth/logout requires auth', async () => {
+    const { status } = await api('/api/auth/logout', { method: 'POST' })
+    assert.equal(status, 401)
+  })
+
+  it('POST /api/auth/logout succeeds for authenticated user', async () => {
+    const { token } = await registerUser(`logout-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.equal(body.ok, true)
+  })
+
   it('GET /api/engage/dashboard returns budget and challenges', async () => {
     const { token } = await registerUser(`dash-${Date.now()}@test.local`)
     const { status, body } = await api('/api/engage/dashboard', {

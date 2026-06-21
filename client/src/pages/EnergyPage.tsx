@@ -153,10 +153,11 @@ export function EnergyPage() {
 
         <input
           ref={fileInputRef}
+          id="bill-photo"
           type="file"
           accept="image/*"
           capture="environment"
-          className="hidden"
+          className="sr-only"
           onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
         />
 
@@ -165,6 +166,7 @@ export function EnergyPage() {
             type="button"
             className="btn-primary flex items-center justify-center gap-2"
             disabled={ocrLoading}
+            aria-label="Take photo or upload electricity bill"
             onClick={() => fileInputRef.current?.click()}
           >
             {ocrLoading ? (
@@ -185,7 +187,11 @@ export function EnergyPage() {
           </button>
         </div>
 
-        {ocrError && <p className="text-sm text-red-600">{ocrError}</p>}
+        {ocrError && (
+          <p className="text-sm text-red-600" role="alert">
+            {ocrError}
+          </p>
+        )}
 
         {ocrResult && (
           <div className="rounded-xl bg-white p-3 text-sm">

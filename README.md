@@ -125,8 +125,8 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 | **High** | Code quality | Shared Zod schemas, `validateBody`/`asyncHandler` routes, extracted engines, `ApiError` client layer, CI build + tests |
 | **Medium** | Security | Helmet + HSTS, dual rate limits, JWT + bcrypt, Zod validation, UUID param checks, production secret guard |
 | **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
-| **Medium** | Testing | `npm test` — **60 tests** across 16 suites; GitHub Actions CI (tests + build) on every push |
-| **Medium** | Accessibility | Skip links, focus rings, dialog trap, 44px targets, page titles |
+| **Medium** | Testing | `npm test` — **67 tests** across 17 suites; GitHub Actions CI (tests + build) on every push |
+| **Medium** | Accessibility | Skip links, radiogroup keyboard nav, live regions, chart labels, 44px targets, page titles |
 | **Low** | Polish | Block UI, screenshots, WhatsApp share cards, 12-week charts |
 
 ---
@@ -386,15 +386,23 @@ Interactive checklists for where you are today:
 
 - **Block-style UI** — neo-brutalist cards with thick borders and offset shadows
 - **Global Ask AI footer** — centered pill above the bottom nav on every main screen; aligned with the app column and safe-area aware
-- **Keyboard & screen reader** — skip links, focus rings, dialog trap, `role="alert"` for errors
-- **Touch targets** — 44px minimum on primary actions
+- **Keyboard & screen reader** — skip links, focus rings, radiogroup arrow-key nav, dialog trap, `role="alert"` / `role="status"` for errors and saves
+- **Touch targets** — 44px minimum on primary actions and coach starter chips
+- **Semantic controls** — labeled forms, tab lists for guide/class contexts, chart `aria-label` summaries
+
+### Authentication (JWT)
+
+- **Sign in / register** — email + password → bcrypt hash → JWT (`Bearer` header, 7-day expiry)
+- **Refresh** — `POST /api/auth/refresh` re-issues token when current token is valid or recently expired (30-day grace)
+- **Logout** — `POST /api/auth/logout` + client clears `localStorage` token
+- **Session restore** — app boot calls `/users/me`; expired tokens trigger refresh or redirect to login
 
 ### Security
 
 - **Helmet** — HTTP security headers (including HSTS in production)
 - **Rate limiting** — 30 auth attempts / 15 min on `/api/auth/*`; 400 requests / 15 min on all `/api/*`
 - **CORS** — configurable via `CORS_ORIGIN` in production
-- **JWT** — 7-day expiry; production refuses weak/default `JWT_SECRET`
+- **JWT** — 7-day signed tokens (`iss`/`aud` claims); `POST /api/auth/refresh` + `/logout`; client auto-refresh on expiry
 - **Validation** — Zod schemas on auth, coach, trips, family/groups, and write endpoints
 - **Authorization** — family/class dashboards return 403 for non-members; UUID params validated
 - **Passwords** — bcrypt (cost 10); min 8 / max 128 chars; emails normalized to lowercase
@@ -429,7 +437,7 @@ GET  /api/insights/personal   → your individual weekly CO₂
 
 ```
 GET  /api/health
-POST /api/auth/login | /register
+POST /api/auth/login | /register | /refresh | /logout
 GET  /api/users/me
 PATCH /api/users/me              # city, onboarding, preferences
 
@@ -484,7 +492,7 @@ carbon-footprint-pwa/
 ```bash
 npm run dev          # client :5173 + server :3001
 npm run build        # shared → server → client
-npm run test         # 60 tests: unit + API integration (CI on push)
+npm run test         # 67 tests: unit + API integration (CI on push)
 npm run db:push      # apply Prisma schema (required after model changes)
 npm run db:seed      # emission factors, merchants, demo user
 ```

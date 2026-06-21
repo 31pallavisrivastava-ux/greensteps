@@ -6,6 +6,8 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recha
 import type { ActionReward } from '@carbon/shared'
 import { CelebrationBanner } from '../components/rewards'
 import { PageHeader, EmptyState, LoadingScreen } from '../components/ui'
+import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
+import { useRadioGroup } from '../lib/useRadioGroup'
 
 const PLASTIC_TYPES = [
   { id: 'PET', label: 'Water bottle (PET)' },
@@ -34,6 +36,12 @@ export function PlasticPage() {
   })
   const [saved, setSaved] = useState(false)
   const [lastReward, setLastReward] = useState<ActionReward | null>(null)
+  const disposalIds = DISPOSAL.map((d) => d.id)
+  const { onKeyDown: onDisposalKeyDown } = useRadioGroup(
+    form.disposalMethod,
+    disposalIds,
+    (id) => setForm({ ...form, disposalMethod: id })
+  )
 
   const load = () =>
     api<PlasticSummary>('/plastic/summary?period=week')
@@ -86,7 +94,7 @@ export function PlasticPage() {
           <p className="mt-1 text-3xl font-bold text-cyan-800">
             {(summary.purchaseG + summary.disposalG).toFixed(0)} grams
           </p>
-          <div className="mt-4 h-44">
+          <div className="mt-4 h-44" role="img" aria-label={`Plastic chart: from orders ${summary.purchaseG.toFixed(0)}g, logged ${summary.disposalG.toFixed(0)}g, recycled ${summary.recycledG.toFixed(0)}g, landfill ${summary.landfillG.toFixed(0)}g`}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
@@ -128,28 +136,23 @@ export function PlasticPage() {
           />
         </div>
 
-        <div>
-          <p className="label">What did you do with it?</p>
-          <div className="grid gap-2 sm:grid-cols-3">
+        <BlockSection label="What did you do with it?" labelId="disposal-method">
+          <BlockGrid labelledBy="disposal-method" onKeyDown={onDisposalKeyDown}>
             {DISPOSAL.map((d) => {
               const Icon = d.icon
-              const active = form.disposalMethod === d.id
               return (
-                <button
+                <BlockOption
                   key={d.id}
-                  type="button"
+                  selected={form.disposalMethod === d.id}
                   onClick={() => setForm({ ...form, disposalMethod: d.id })}
-                  className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border-2 p-3 text-sm font-bold transition ${
-                    active ? 'border-brand bg-brand-muted text-brand' : 'border-slate-200 bg-white'
-                  }`}
                 >
-                  <Icon className={`h-6 w-6 ${active ? 'text-brand' : d.color}`} aria-hidden />
+                  <Icon className={`h-6 w-6 ${form.disposalMethod === d.id ? 'text-brand' : d.color}`} aria-hidden />
                   {d.label}
-                </button>
+                </BlockOption>
               )
             })}
-          </div>
-        </div>
+          </BlockGrid>
+        </BlockSection>
 
         <div>
           <label className="label" htmlFor="when">When?</label>
@@ -165,6 +168,11 @@ export function PlasticPage() {
         <button type="submit" className="btn-primary w-full">
           {saved ? 'Saved!' : 'Save plastic entry'}
         </button>
+        {saved && (
+          <p className="text-center text-sm font-medium text-emerald-700" role="status">
+            Plastic entry saved
+          </p>
+        )}
         {lastReward && <CelebrationBanner reward={lastReward} />}
       </form>
 

@@ -1,13 +1,18 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
-import { signToken } from '../middleware/auth.js'
+import { authMiddleware } from '../middleware/auth.js'
 import { serializeUser } from '../lib/userProfile.js'
 import { asyncHandler } from '../lib/http.js'
 import { validateBody } from '../middleware/validate.js'
 import { loginSchema, registerSchema } from '../lib/schemas/auth.js'
+import { getTokenFromHeader, signToken, verifyTokenForRefresh } from '../lib/jwt.js'
 
 export const authRouter = Router()
+
+function tokenResponse(user) {
+  return { token: signToken(user.id), user: serializeUser(user) }
+}
 
 authRouter.post(
   '/register',
@@ -26,8 +31,7 @@ authRouter.post(
         state: body.state,
       },
     })
-    const token = signToken(user.id)
-    res.status(201).json({ token, user: serializeUser(user) })
+    res.status(201).json(tokenResponse(user))
   })
 )
 
@@ -38,9 +42,41 @@ authRouter.post(
     const { email, password } = req.body
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      return res.status(401).json({ error: 'Invalid credentials' })
+      return res.status(401).json({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' })
     }
-    const token = signToken(user.id)
-    res.json({ token, user: serializeUser(user) })
+    res.json(tokenResponse(user))
+  })
+)
+
+/** Issue a new JWT when the current one is valid or recently expired. */
+authRouter.post(
+  '/refresh',
+  asyncHandler(async (req, res) => {
+    const token = getTokenFromHeader(req.headers.authorization)
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized', code: 'NO_TOKEN' })
+    }
+    try {
+      const payload = verifyTokenForRefresh(token)
+      const user = await prisma.user.findUnique({ where: { id: payload.sub } })
+      if (!user) {
+        return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' })
+      }
+      res.json({ token: signToken(user.id) })
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Refresh window expired', code: 'REFRESH_EXPIRED' })
+      }
+      return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' })
+    }
+  })
+)
+
+/** Client-side logout — stateless JWT; discard token locally after calling. */
+authRouter.post(
+  '/logout',
+  authMiddleware,
+  asyncHandler(async (_req, res) => {
+    res.json({ ok: true })
   })
 )

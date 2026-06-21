@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
+import jwt from 'jsonwebtoken'
 import { signToken, authMiddleware } from '../src/middleware/auth.js'
 import { assertProductionSecrets } from '../src/middleware/security.js'
 
@@ -21,37 +22,46 @@ describe('authMiddleware', () => {
     process.env.JWT_SECRET = 'unit-test-secret'
   })
 
-  it('rejects missing Authorization header', () => {
+  it('rejects missing Authorization header', async () => {
     const req = { headers: {} }
     const res = mockRes()
     let nextCalled = false
-    authMiddleware(req, res, () => {
+    await authMiddleware(req, res, () => {
       nextCalled = true
     })
     assert.equal(nextCalled, false)
     assert.equal(res.statusCode, 401)
-    assert.equal(res.body.error, 'Unauthorized')
+    assert.equal(res.body.code, 'NO_TOKEN')
   })
 
-  it('rejects malformed Bearer token', () => {
+  it('rejects malformed Bearer token', async () => {
     const req = { headers: { authorization: 'Bearer not-a-valid-jwt' } }
     const res = mockRes()
-    authMiddleware(req, res, () => {})
+    await authMiddleware(req, res, () => {})
     assert.equal(res.statusCode, 401)
-    assert.equal(res.body.error, 'Invalid token')
+    assert.equal(res.body.code, 'INVALID_TOKEN')
   })
 
-  it('accepts valid token and sets userId', () => {
-    const userId = 'user-abc-123'
-    const token = signToken(userId)
+  it('returns TOKEN_EXPIRED for expired JWT', async () => {
+    const token = jwt.sign({ sub: 'user-abc' }, process.env.JWT_SECRET, {
+      expiresIn: '-1h',
+      issuer: 'greensteps-api',
+      audience: 'greensteps-client',
+    })
     const req = { headers: { authorization: `Bearer ${token}` } }
     const res = mockRes()
-    let nextCalled = false
-    authMiddleware(req, res, () => {
-      nextCalled = true
+    await authMiddleware(req, res, () => {})
+    assert.equal(res.statusCode, 401)
+    assert.equal(res.body.code, 'TOKEN_EXPIRED')
+  })
+
+  it('signToken produces verifiable JWT with issuer and audience', () => {
+    const token = signToken('user-xyz')
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: 'greensteps-api',
+      audience: 'greensteps-client',
     })
-    assert.equal(nextCalled, true)
-    assert.equal(req.userId, userId)
+    assert.equal(payload.sub, 'user-xyz')
   })
 })
 

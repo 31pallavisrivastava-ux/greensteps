@@ -57,8 +57,7 @@ export function Layout() {
             <button
               type="button"
               onClick={() => {
-                logout()
-                navigate('/login')
+                void logout().then(() => navigate('/login'))
               }}
               className="flex min-h-11 min-w-11 items-center justify-center rounded-md border-2 border-slate-900 bg-white hover:bg-slate-50"
               aria-label="Sign out"

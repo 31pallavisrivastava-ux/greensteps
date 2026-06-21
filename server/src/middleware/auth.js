@@ -1,21 +1,46 @@
-import jwt from 'jsonwebtoken'
+import { prisma } from '../lib/prisma.js'
+import { getTokenFromHeader, signToken, verifyAccessToken } from '../lib/jwt.js'
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
+export { signToken }
 
-export function signToken(userId) {
-  return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: '7d' })
-}
-
-export function authMiddleware(req, res, next) {
-  const header = req.headers.authorization
-  if (!header?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' })
+export async function authMiddleware(req, res, next) {
+  const token = getTokenFromHeader(req.headers.authorization)
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized', code: 'NO_TOKEN' })
   }
+
   try {
-    const payload = jwt.verify(header.slice(7), JWT_SECRET)
+    const payload = verifyAccessToken(token)
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true },
+    })
+    if (!user) {
+      return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' })
+    }
     req.userId = payload.sub
     next()
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' })
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' })
+    }
+    return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' })
   }
+}
+
+/** Optional auth — attaches userId when a valid token is present. */
+export async function optionalAuthMiddleware(req, _res, next) {
+  const token = getTokenFromHeader(req.headers.authorization)
+  if (!token) return next()
+  try {
+    const payload = verifyAccessToken(token)
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true },
+    })
+    if (user) req.userId = payload.sub
+  } catch {
+    /* ignore invalid optional token */
+  }
+  next()
 }

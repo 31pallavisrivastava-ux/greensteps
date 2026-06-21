@@ -215,6 +215,7 @@ export function FamilyPage() {
                   type="button"
                   className="btn-secondary !min-h-10 !px-2 text-xs"
                   onClick={() => copyCode(dashboard.family.joinCode)}
+                  aria-label={`Copy family join code ${dashboard.family.joinCode}`}
                 >
                   <Copy className="h-3.5 w-3.5" aria-hidden />
                   {dashboard.family.joinCode}

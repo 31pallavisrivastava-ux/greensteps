@@ -13,6 +13,8 @@ import type { TripResponse, ActionReward } from '@carbon/shared'
 import { CelebrationBanner } from '../components/rewards'
 import { useAuth } from '../lib/auth'
 import { PageHeader, EmptyState } from '../components/ui'
+import { BlockGrid, BlockOption, BlockSection } from '../components/BlockOption'
+import { useRadioGroup } from '../lib/useRadioGroup'
 import { TRANSPORT_MODES, getModeInfo, ModeIcon } from '../lib/transportModes'
 
 export function TripsPage() {
@@ -25,16 +27,21 @@ export function TripsPage() {
   const [vehicleId, setVehicleId] = useState('')
   const [lastReward, setLastReward] = useState<ActionReward | null>(null)
   const [manual, setManual] = useState({ distanceKm: 5, mode: 'METRO' })
+  const [gpsError, setGpsError] = useState<string | null>(null)
+  const [offlineMsg, setOfflineMsg] = useState<string | null>(null)
+  const modeIds = TRANSPORT_MODES.map((m) => m.id)
+  const { onKeyDown: onModeKeyDown } = useRadioGroup(selectedMode, modeIds, setSelectedMode)
 
   const load = () => api<TripResponse[]>('/trips').then(setTrips).catch(console.error)
   useEffect(() => { load() }, [])
 
   const handleStart = async () => {
+    setGpsError(null)
     try {
       await startTripTracking(setPoints)
       setTracking(true)
     } catch {
-      alert('Location access is needed to track your trip. Please allow GPS in your browser settings.')
+      setGpsError('Location access is needed to track your trip. Please allow GPS in your browser settings.')
     }
   }
 
@@ -58,7 +65,7 @@ export function TripsPage() {
       load()
     } catch {
       await queueOfflineTrip(payload)
-      alert('Saved offline. It will sync when you are back online.')
+      setOfflineMsg('Saved offline. It will sync when you are back online.')
     }
   }
 
@@ -108,6 +115,17 @@ export function TripsPage() {
 
       {lastReward && <CelebrationBanner reward={lastReward} />}
 
+      {gpsError && (
+        <p className="rounded-md border-2 border-red-600 bg-red-50 px-3 py-2 text-sm font-medium text-red-800" role="alert">
+          {gpsError}
+        </p>
+      )}
+      {offlineMsg && (
+        <p className="rounded-md border-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950" role="status">
+          {offlineMsg}
+        </p>
+      )}
+
       <div className={`card ${tracking ? 'border-2 border-brand ring-4 ring-brand/10' : ''}`}>
         <div className="flex items-center gap-3">
           <div className={`icon-circle ${tracking ? 'bg-brand' : 'bg-indigo-100'}`}>
@@ -137,25 +155,25 @@ export function TripsPage() {
 
       {pendingId && (
         <div className="card border-2 border-brand/30 bg-brand-muted/50">
-          <h3 className="text-lg font-bold text-brand">How did you travel?</h3>
-          <p className="hint mb-4">Tap the option that best matches your trip</p>
-          <div className="flex flex-wrap gap-2">
-            {TRANSPORT_MODES.map((m) => {
-              const Icon = m.icon
-              const active = selectedMode === m.id
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setSelectedMode(m.id)}
-                  className={`chip ${active ? 'chip-active' : 'chip-inactive'}`}
-                >
-                  <Icon className="h-4 w-4" aria-hidden />
-                  {m.label}
-                </button>
-              )
-            })}
-          </div>
+          <BlockSection label="How did you travel?" labelId="confirm-mode-label">
+            <p className="hint mb-2">Tap the option that best matches your trip</p>
+            <BlockGrid labelledBy="confirm-mode-label" onKeyDown={onModeKeyDown}>
+              {TRANSPORT_MODES.map((m) => {
+                const Icon = m.icon
+                return (
+                  <BlockOption
+                    key={m.id}
+                    selected={selectedMode === m.id}
+                    onClick={() => setSelectedMode(m.id)}
+                    compact
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                    {m.label}
+                  </BlockOption>
+                )
+              })}
+            </BlockGrid>
+          </BlockSection>
           {user?.vehicles?.length ? (
             <div className="mt-4">
               <label className="label" htmlFor="vehicle">Your vehicle (optional)</label>

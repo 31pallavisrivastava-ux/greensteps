@@ -71,7 +71,7 @@ export function GuidePage() {
         </Link>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist" aria-label="Guide contexts">
         {contexts.map((c) => {
           const active = activeId === c.id
           const theme = CONTEXT_THEMES[c.id as keyof typeof CONTEXT_THEMES]
@@ -79,6 +79,8 @@ export function GuidePage() {
             <button
               key={c.id}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setActiveId(c.id)}
               className={`chip shrink-0 ${
                 active && theme
@@ -117,6 +119,7 @@ export function GuidePage() {
                     <button
                       type="button"
                       onClick={() => toggle(item.id)}
+                      aria-checked={done}
                       className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
                       <div

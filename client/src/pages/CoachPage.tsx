@@ -99,7 +99,7 @@ export function CoachPage() {
                   key={s}
                   type="button"
                   onClick={() => send(s)}
-                  className="rounded-md border-2 border-slate-900 bg-white px-2 py-1.5 text-left text-xs font-bold hover:bg-slate-50"
+                  className="min-h-10 rounded-md border-2 border-slate-900 bg-white px-3 py-2 text-left text-xs font-bold hover:bg-slate-50"
                 >
                   {s}
                 </button>
@@ -117,6 +117,7 @@ export function CoachPage() {
                 : 'border-slate-900 bg-slate-50 text-slate-900'
             }`}
           >
+            <span className="sr-only">{m.role === 'user' ? 'You: ' : 'Coach: '}</span>
             {m.content}
           </div>
         ))}

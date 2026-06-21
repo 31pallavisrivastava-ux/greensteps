@@ -16,10 +16,17 @@ export function CarbonBudgetRing({ budget, compact }: CarbonBudgetRingProps) {
   const ringColor =
     budget.status === 'over' ? '#ef4444' : budget.status === 'warning' ? '#f59e0b' : '#059669'
 
+  const ringLabel = `${budget.usedPct}% of weekly fair-share carbon budget used. ${budget.usedKg} of ${budget.fairShareKg} kg. ${budget.statusLabel}`
+
   if (compact) {
     return (
       <div className="flex items-center gap-4">
-        <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <div
+          className="relative shrink-0"
+          style={{ width: size, height: size }}
+          role="img"
+          aria-label={ringLabel}
+        >
           <svg width={size} height={size} className="-rotate-90" aria-hidden>
             <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
             <circle
@@ -54,7 +61,12 @@ export function CarbonBudgetRing({ budget, compact }: CarbonBudgetRingProps) {
 
   return (
     <div className="flex items-center gap-5">
-      <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <div
+        className="relative shrink-0"
+        style={{ width: size, height: size }}
+        role="img"
+        aria-label={ringLabel}
+      >
         <svg width={size} height={size} className="-rotate-90" aria-hidden>
           <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
           <circle

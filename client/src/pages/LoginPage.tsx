@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { Leaf, Lock, Mail, User } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { SkipLink } from '../components/SkipLink'
@@ -15,6 +15,8 @@ export function LoginPage() {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [searchParams] = useSearchParams()
+  const sessionExpired = searchParams.get('session') === 'expired'
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,6 +73,12 @@ export function LoginPage() {
 
       <form onSubmit={submit} className="card-soft space-y-5">
         <h2 className="sr-only">{isRegister ? 'Registration form' : 'Sign in form'}</h2>
+
+        {sessionExpired && (
+          <p className="rounded-md border-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950" role="alert">
+            Your session expired. Please sign in again.
+          </p>
+        )}
 
         {isRegister && (
           <div>
@@ -143,6 +151,7 @@ export function LoginPage() {
         <button
           type="button"
           className="w-full text-center text-base font-medium text-brand underline-offset-2 hover:underline"
+          aria-pressed={isRegister}
           onClick={() => setIsRegister(!isRegister)}
         >
           {isRegister ? 'Already have an account? Sign in' : 'New here? Create an account'}

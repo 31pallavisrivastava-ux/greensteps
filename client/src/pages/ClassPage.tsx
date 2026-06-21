@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Copy, GraduationCap, Plus, Trophy, Users } from 'lucide-react'
 import { api } from '../lib/api'
 import type { ClassGroupSummary, ClassLeaderboard } from '@carbon/shared'
+import { LoadingScreen } from '../components/ui'
 
 export function ClassPage() {
   const [groups, setGroups] = useState<ClassGroupSummary[]>([])
@@ -59,7 +60,7 @@ export function ClassPage() {
   }
 
   if (loading) {
-    return <p className="py-16 text-center text-sm text-slate-500">Loading…</p>
+    return <LoadingScreen label="Loading class groups…" />
   }
 
   return (
@@ -70,7 +71,7 @@ export function ClassPage() {
       </div>
 
       {msg && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-800">
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-800" role="status">
           {msg}
         </p>
       )}
@@ -81,13 +82,18 @@ export function ClassPage() {
           Create
         </button>
         <div className="flex flex-1 gap-2">
+          <label className="sr-only" htmlFor="class-join-code">
+            Class join code
+          </label>
           <input
+            id="class-join-code"
             className="input !min-h-11 flex-1 uppercase"
             placeholder="Join code"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            autoComplete="off"
           />
-          <button type="button" className="btn-secondary !px-3" onClick={joinGroup}>
+          <button type="button" className="btn-secondary !min-h-11 !px-3" onClick={joinGroup} aria-label="Join class with code">
             <Users className="h-4 w-4" aria-hidden />
           </button>
         </div>
@@ -95,7 +101,11 @@ export function ClassPage() {
 
       {showCreate && (
         <div className="card space-y-2">
+          <label className="label" htmlFor="class-name">
+            Class name
+          </label>
           <input
+            id="class-name"
             className="input"
             placeholder="Class name"
             value={newName}
@@ -108,11 +118,13 @@ export function ClassPage() {
       )}
 
       {groups.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Your classes">
           {groups.map((g) => (
             <button
               key={g.id}
               type="button"
+              role="tab"
+              aria-selected={selectedId === g.id}
               onClick={() => setSelectedId(g.id)}
               className={`chip ${selectedId === g.id ? 'chip-active' : 'chip-inactive'}`}
             >
