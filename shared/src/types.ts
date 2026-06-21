@@ -468,6 +468,33 @@ export interface FamilyDashboard {
   yourSharePct: number | null
 }
 
+export interface CoachChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface CoachChatResponse {
+  reply: string
+  mode: 'agent' | 'rules'
+  toolsUsed: string[]
+  suggestedLink: string | null
+  agentError?: string | null
+  model?: string
+  provider?: string
+}
+
+export interface CoachStatus {
+  agentEnabled: boolean
+  provider: string
+  model: string
+  llmReachable?: boolean
+  modelReady?: boolean
+  hint?: string | null
+  modelsAvailable?: string[]
+  tools: string[]
+  description: string
+}
+
 export interface VehicleDto {
   id: string
   label: string

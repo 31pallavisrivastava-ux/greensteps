@@ -26,7 +26,7 @@ Emission factors use **CEA Grid V21** (0.7117 kg CO₂/kWh), IPCC fuel factors, 
 
 This vertical matches the challenge expectation of a **smart, dynamic assistant** that makes **logical decisions from user context** and delivers **practical, real-world usability**.
 
-> **Note:** The assistant uses a **priority rules engine** (deterministic coach), not a generative AI chatbot — actions are chosen from the user's profile, logs, and weekly footprint mix.
+> **Note:** The assistant uses a **hybrid coach** — a priority rules engine for “Do this today”, plus an optional **agentic AI coach** at `/coach` powered by **open-source models via Ollama** (Llama, Mistral, etc.), with a rules fallback when Ollama is offline.
 
 ### Approach and logic
 
@@ -34,7 +34,7 @@ GreenSteps acts as a **context-aware sustainability coach**, not a static calcul
 
 1. **Collect** — users log trips (public vs private), fuel, electricity, delivery orders, and plastic; optional bill OCR for kWh.
 2. **Compute** — an emissions engine maps activity to GHG Protocol scopes using India-specific factors (CEA grid, IPCC fuel, merchant packaging defaults).
-3. **Decide** — a priority-based rules engine picks one **“Do this today”** action from the user’s profile, footprint mix, and recent logs.
+3. **Decide** — a priority-based rules engine picks one **“Do this today”** action; the **agentic coach** (`/coach`) can answer free-form questions using the same live data via tool calls.
 4. **Nudge** — context checklists (beach, school, home), AQI-based transport tips, weekly challenges, and fair-share budget ring keep behaviour change actionable.
 5. **Socialise** — family household totals, class leaderboard, and shareable milestone cards.
 
@@ -60,13 +60,14 @@ Emissions engine → weekly CO₂ by scope
 ┌───────────────────────────────────────┐
 │ Dynamic assistant layer               │
 │ • resolveTodayAction() — daily nudge  │
+│ • Agentic coach — Ollama + 5 tools  │
 │ • Guide contexts — situational lists  │
 │ • AQI + city — local air tips         │
 │ • Challenges & budget — gamification  │
 │ • Family dashboard — household rollup │
 └───────────────────────────────────────┘
         ↓
-React UI — Home / Log / Guide / Impact
+React UI — Home / Log / Guide / Impact + global **Ask AI** footer
 ```
 
 **Key flows:**
@@ -76,6 +77,7 @@ React UI — Home / Log / Guide / Impact
 - **Guide:** pick context → interactive checklist → save progress
 - **Impact:** personal vs family toggle, 12-week trend, explain drill-down
 - **Family:** create/join household with code → per-member + combined CO₂
+- **Ask AI:** floating pill above the bottom nav on every screen → agentic coach chat at `/coach`
 
 Run locally:
 
@@ -94,7 +96,7 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 | `todayAction.test.js` | Assistant decision priority rules |
 | `utilityBillParser.test.js` | Indian electricity bill OCR parsing |
 | `emissionsBudget.test.js` | Science-based weekly fair-share constant |
-| `api.integration.test.js` | Health, auth, `/insights/personal`, family create/join |
+| `api.integration.test.js` | Health, auth, `/insights/personal`, family create/join, coach chat/status |
 
 ### Assumptions
 
@@ -112,13 +114,13 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 
 | Tier | Area | How GreenSteps addresses it |
 |------|------|----------------------------|
-| **High** | Smart dynamic assistant | Priority rules engine (`resolveTodayAction`), context checklists, AQI nudges |
+| **High** | Smart dynamic assistant | Priority rules engine, agentic Ollama coach with tool calls, context checklists, AQI nudges |
 | **High** | Context-based decisions | Onboarding profile + weekly footprint drive daily action |
 | **High** | Real-world usability | India merchants, CEA grid, mobile PWA, demo account |
 | **High** | Code quality | Monorepo, shared types, modular engines, consistent UI patterns |
 | **Medium** | Security | JWT auth, bcrypt passwords, Zod validation, `.env` for secrets |
 | **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
-| **Medium** | Testing | `npm test` — 13 tests: assistant rules, OCR, budget constant, API auth/personal/family |
+| **Medium** | Testing | `npm test` — 15 tests: assistant rules, OCR, budget constant, API auth/personal/family/coach |
 | **Medium** | Accessibility | Skip links, focus rings, dialog trap, 44px targets, page titles |
 | **Low** | Polish | Block UI, screenshots, WhatsApp share cards, 12-week charts |
 
@@ -197,12 +199,12 @@ Verify the API is on the latest build:
 
 ```bash
 curl http://localhost:3001/api/health
-# → { "status": "ok", "routes": ["insights/personal", "insights/history", "family"], ... }
+# → { "status": "ok", "routes": ["insights/personal", "insights/history", "family", "coach"], ... }
 ```
 
 ## App navigation
 
-Four bottom tabs keep the UI focused:
+Four bottom tabs keep the UI focused. A global **Ask AI** pill sits in a fixed footer row above the tabs on every authenticated screen (hidden on `/coach` while you chat).
 
 | Tab | Purpose |
 |-----|---------|
@@ -210,6 +212,11 @@ Four bottom tabs keep the UI focused:
 | **Log** | Add trips, fuel, electricity, deliveries, or plastic |
 | **Guide** | Context checklists (beach, school, home, travel, market) + tips |
 | **Impact** | Personal vs family toggle, 12-week trend, breakdown, challenges, share |
+
+| Footer / route | Purpose |
+|----------------|---------|
+| **Ask AI** (all screens) | One tap to open the agentic coach — uses live footprint data via tool calls |
+| `/coach` | Full-screen chat with Ollama (or rules fallback when offline) |
 
 Additional routes:
 
@@ -222,6 +229,49 @@ Additional routes:
 | `/trips`, `/fuel`, `/energy`, … | Reachable from Log |
 
 ## Features
+
+### Agentic AI coach (`/coach`) — open-source via Ollama
+
+The coach is always one tap away: an **Ask AI** pill in the fixed footer appears on Home, Log, Guide, Impact, Settings, Family, and all other main app screens. It opens `/coach`, where you can ask free-form questions about your footprint.
+
+| Mode | When | Behavior |
+|------|------|----------|
+| **Agent** | Ollama running + model pulled | Local OSS model runs a tool-calling loop (up to 5 steps) against live footprint APIs |
+| **Rules** | Ollama offline (demo default) | Keyword router + same tools — still uses real user data |
+
+**Setup (one-time):**
+
+```bash
+# Install from https://ollama.com then:
+ollama pull llama3.1:8b    # or mistral, phi3, llama3.2
+ollama serve               # usually auto-starts on macOS
+```
+
+**Recommended open models** (all free, local, private):
+
+| Model | Pull command | Notes |
+|-------|--------------|-------|
+| Llama 3.1 8B | `ollama pull llama3.1:8b` | Default — good tool use |
+| Mistral 7B | `ollama pull mistral` | Fast, lightweight |
+| Phi-3 | `ollama pull phi3` | Small, runs on low RAM |
+| Llama 3.2 3B | `ollama pull llama3.2:3b` | Smallest viable option |
+
+Set in `server/.env`:
+
+```env
+LLM_BASE_URL="http://127.0.0.1:11434"
+LLM_MODEL="llama3.1:8b"
+```
+
+**Tools the agent can call:**
+
+- `get_personal_footprint` — weekly CO₂ split and fair-share status  
+- `explain_footprint` — line-by-line breakdown with formulas  
+- `get_weekly_trend` — 12-week history and direction  
+- `get_today_action` — prioritized daily nudge  
+- `get_engagement_summary` — budget, challenges, streaks, AQI  
+
+Example questions: *“Why is my footprint high?”*, *“What should I do today?”*, *“Am I on track for my budget?”*
 
 ### Personal & family footprint
 
@@ -273,6 +323,7 @@ Interactive checklists for where you are today:
 ### UI & accessibility
 
 - **Block-style UI** — neo-brutalist cards with thick borders and offset shadows
+- **Global Ask AI footer** — centered pill above the bottom nav on every main screen; aligned with the app column and safe-area aware
 - **Keyboard & screen reader** — skip links, focus rings, dialog trap, `role="alert"` for errors
 - **Touch targets** — 44px minimum on primary actions
 
@@ -319,6 +370,9 @@ GET  /api/family/:id/dashboard   # household + member totals
 GET  /api/engage/dashboard       # challenges, streaks, budget, AQI
 GET  /api/engage/today-action    # personalized daily nudge
 
+POST /api/coach/chat             # Ollama agentic coach (OSS model + tools)
+GET  /api/coach/status           # Ollama reachability + model check
+
 GET  /api/guide/contexts | /comparison | /milestones/share
 POST /api/energy/ocr             # Indian bill scan (kWh extraction)
 
@@ -332,12 +386,12 @@ GET  /api/groups/:id/leaderboard
 ```
 carbon-footprint-pwa/
 ├── client/                 # React PWA
-│   ├── src/pages/          # Home, Log, Guide, Impact, Family, Settings, …
-│   ├── src/components/     # UI, engage, PersonalFootprintCard, CityPicker
+│   ├── src/pages/          # Home, Log, Guide, Impact, Family, Coach, Settings, …
+│   ├── src/components/     # UI, CoachFab, engage, PersonalFootprintCard, CityPicker
 │   └── src/lib/            # API, auth, share cards
 ├── server/
-│   ├── src/modules/        # emissions, rewards, guide, engage, family, insights
-│   ├── src/routes/         # Express routers
+│   ├── src/modules/        # emissions, rewards, guide, engage, family, insights, coach
+│   ├── src/routes/         # Express routers (incl. coach)
 │   ├── data/               # factors, checklists, challenges, cities
 │   └── prisma/             # schema + seed
 ├── shared/                 # @carbon/shared types & enums
@@ -349,7 +403,7 @@ carbon-footprint-pwa/
 ```bash
 npm run dev          # client :5173 + server :3001
 npm run build        # shared → server → client
-npm run test         # unit tests (assistant logic, bill OCR)
+npm run test         # 15 tests: assistant rules, bill OCR, budget, API + coach
 npm run db:push      # apply Prisma schema (required after model changes)
 npm run db:seed      # emission factors, merchants, demo user
 ```
@@ -362,6 +416,11 @@ npm run db:seed      # emission factors, merchants, demo user
 DATABASE_URL="file:./dev.db"
 JWT_SECRET="change-me-in-production"
 PORT=3001
+
+# Open-source local LLM (Ollama) — see Agentic AI coach section
+LLM_BASE_URL="http://127.0.0.1:11434"
+LLM_MODEL="llama3.1:8b"
+LLM_PROVIDER="ollama"
 ```
 
 Set your city via Settings or `PATCH /api/users/me` with `{ "city": "Mumbai" }` for AQI.
@@ -373,10 +432,12 @@ Supported cities: Delhi, Mumbai, Bengaluru, Hyderabad, Chennai, Kolkata, Pune, A
 | Problem | Fix |
 |---------|-----|
 | `404` on `/api/family`, `/api/insights/personal`, or `/api/insights/history` | Old API still on port 3001. Run `lsof -i :3001`, kill the PID, then `npm run dev`. |
-| Health check missing `family` in routes | Same as above — restart the server after `git pull`. |
+| Health check missing `family` or `coach` in routes | Same as above — restart the server after `git pull`. |
 | Home loads but personal/family cards empty | Optional endpoints failed; core app still works. Restart API and hard-refresh (Cmd+Shift+R). |
 | PWA shows stale errors | DevTools → Application → Service Workers → Unregister, then reload. |
 | Schema errors after pull | Run `npm run db:push` then `npm run db:seed`. |
+| Coach always offline / rules-only replies | Install [Ollama](https://ollama.com), run `ollama pull llama3.1:8b`, restart server. Check `GET /api/coach/status`. |
+| **Ask AI** button overlaps content | Hard-refresh after pull — footer stacks FAB above nav with extra scroll padding. |
 
 ## Differentiation
 
@@ -387,6 +448,7 @@ Compared to generic carbon calculators and offset-first apps:
 - **Reduce first** — budget, challenges, and checklists before offsets
 - **Context-aware** — beach / school / home nudges, not one static survey
 - **Plastic + delivery together** — upstream orders and downstream disposal
+- **Open-source AI coach** — global **Ask AI** entry on every screen; Ollama agent with live data tools, rules fallback offline
 - **Social** — class leaderboard + shareable image milestones
 
 ## License

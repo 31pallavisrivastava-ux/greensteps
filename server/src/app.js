@@ -14,6 +14,7 @@ import { guideRouter } from './routes/guide.js'
 import { engageRouter } from './routes/engage.js'
 import { groupsRouter } from './routes/groups.js'
 import { familyRouter } from './routes/family.js'
+import { coachRouter } from './routes/coach.js'
 
 export function createApp() {
   const app = express()
@@ -26,7 +27,7 @@ export function createApp() {
     res.json({
       status: 'ok',
       service: 'carbon-footprint-api',
-      routes: ['insights/personal', 'insights/history', 'family'],
+      routes: ['insights/personal', 'insights/history', 'family', 'coach'],
     })
   })
 
@@ -45,6 +46,7 @@ export function createApp() {
   app.use('/api/engage', engageRouter)
   app.use('/api/groups', groupsRouter)
   app.use('/api/family', familyRouter)
+  app.use('/api/coach', coachRouter)
 
   app.use((err, _req, res, _next) => {
     console.error(err)

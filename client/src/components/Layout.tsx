@@ -3,6 +3,7 @@ import { BarChart3, BookOpen, Home, Leaf, LogOut, PenLine, Settings } from 'luci
 import { useAuth } from '../lib/auth'
 import { LOG_ROUTES } from '../lib/logActions'
 import { SkipLink } from './SkipLink'
+import { CoachFab } from './CoachFab'
 import { usePageTitle } from '../lib/usePageTitle'
 
 const nav = [
@@ -25,6 +26,8 @@ export function Layout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   usePageTitle()
+
+  const onCoach = pathname === '/coach'
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col bg-slate-100">
@@ -66,37 +69,48 @@ export function Layout() {
         </div>
       </header>
 
-      <main id="main-content" className="flex-1 overflow-y-auto px-4 py-4 pb-20" tabIndex={-1}>
+      <main
+        id="main-content"
+        className={`flex-1 overflow-y-auto px-4 py-4 ${onCoach ? 'pb-[5.25rem]' : 'pb-[11rem]'}`}
+        tabIndex={-1}
+      >
         <Outlet />
       </main>
 
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-10 mx-auto max-w-lg border-t-2 border-slate-900 bg-white"
-        aria-label="Main menu"
-      >
-        <div className="grid grid-cols-4 px-1 py-1">
-          {nav.map(({ to, icon: Icon, label, short, end }) => {
-            const active = isNavActive(pathname, nav.find((n) => n.to === to)!)
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                aria-label={label}
-                aria-current={active ? 'page' : undefined}
-                className={`m-1 flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md border-2 py-2 text-[10px] font-black transition ${
-                  active
-                    ? 'border-brand bg-brand text-white'
-                    : 'border-transparent text-slate-600 hover:border-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} aria-hidden />
-                {short}
-              </NavLink>
-            )
-          })}
-        </div>
-      </nav>
+      <footer className="fixed bottom-0 left-0 right-0 z-20 mx-auto w-full max-w-lg">
+        {!onCoach && (
+          <div className="flex h-[4.5rem] items-end justify-center border-t border-slate-200/80 bg-slate-100 px-4 pb-3">
+            <CoachFab />
+          </div>
+        )}
+        <nav
+          className="border-t-2 border-slate-900 bg-white pb-[max(0px,env(safe-area-inset-bottom))]"
+          aria-label="Main menu"
+        >
+          <div className="grid grid-cols-4 px-1 py-1">
+            {nav.map(({ to, icon: Icon, label, short, end }) => {
+              const active = isNavActive(pathname, nav.find((n) => n.to === to)!)
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  aria-label={label}
+                  aria-current={active ? 'page' : undefined}
+                  className={`m-1 flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md border-2 py-2 text-[10px] font-black transition ${
+                    active
+                      ? 'border-brand bg-brand text-white'
+                      : 'border-transparent text-slate-600 hover:border-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} aria-hidden />
+                  {short}
+                </NavLink>
+              )
+            })}
+          </div>
+        </nav>
+      </footer>
     </div>
   )
 }

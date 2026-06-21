@@ -125,4 +125,28 @@ describe('API integration', () => {
     assert.equal(dashboard.body.family.memberCount, 2)
     assert.equal(dashboard.body.members.length, 2)
   })
+
+  it('POST /api/coach/chat returns rules-based reply without API key', async () => {
+    const { token } = await registerUser(`coach-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/coach/chat', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: 'What should I do today?' }),
+    })
+    assert.equal(status, 200)
+    assert.equal(body.mode, 'rules')
+    assert.ok(body.reply.length > 10)
+    assert.ok(Array.isArray(body.toolsUsed))
+  })
+
+  it('GET /api/coach/status reports agent availability', async () => {
+    const { token } = await registerUser(`coach-status-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/coach/status', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.equal(typeof body.agentEnabled, 'boolean')
+    assert.equal(body.provider, 'ollama')
+    assert.equal(typeof body.llmReachable, 'boolean')
+  })
 })
