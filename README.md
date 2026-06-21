@@ -6,8 +6,118 @@
 
 Emission factors use **CEA Grid V21** (0.7117 kg CO₂/kWh), IPCC fuel factors, and India-specific delivery benchmarks, aligned with [NCMA India GHG Protocol](https://ghg.ncmaindia.org/) guidance.
 
+---
+
+## Challenge submission
+
+| Requirement | Status |
+|-------------|--------|
+| **Public GitHub repository** | https://github.com/31pallavisrivastava-ux/greensteps |
+| **Single branch** | `main` only |
+| **Repository size** | ~2.5 MB tracked (under 10 MB limit; `node_modules` not committed) |
+| **Complete project code** | Monorepo: `client/`, `server/`, `shared/` |
+| **README** | This document |
+
+### Chosen vertical
+
+**Personal Sustainability & Carbon Reduction Assistant**
+
+**Persona:** Urban Indian individuals and families who want to understand and lower their daily carbon footprint from commute, electricity, quick-commerce deliveries, and plastic — without needing expert climate knowledge.
+
+This vertical matches the challenge expectation of a **smart, dynamic assistant** that makes **logical decisions from user context** and delivers **practical, real-world usability**.
+
+### Approach and logic
+
+GreenSteps acts as a **context-aware sustainability coach**, not a static calculator:
+
+1. **Collect** — users log trips (public vs private), fuel, electricity, delivery orders, and plastic; optional bill OCR for kWh.
+2. **Compute** — an emissions engine maps activity to GHG Protocol scopes using India-specific factors (CEA grid, IPCC fuel, merchant packaging defaults).
+3. **Decide** — a priority-based rules engine picks one **“Do this today”** action from the user’s profile, footprint mix, and recent logs.
+4. **Nudge** — context checklists (beach, school, home), AQI-based transport tips, weekly challenges, and fair-share budget ring keep behaviour change actionable.
+5. **Socialise** — family household totals, class leaderboard, and shareable milestone cards.
+
+**Decision priority (highest first):**
+
+```
+Unconfirmed trips → Missing power data when electricity is top driver
+→ High delivery volume → Low public transport for car users
+→ Plastic landfill > recycled → High electricity share → Default daily log
+```
+
+The assistant also adapts to onboarding choices: **city** (grid + AQI), **transport preference**, and **top concern** (power, commute, delivery, plastic).
+
+### How the solution works
+
+```
+User logs activity (PWA)
+        ↓
+Express API + Prisma (SQLite)
+        ↓
+Emissions engine → weekly CO₂ by scope
+        ↓
+┌───────────────────────────────────────┐
+│ Dynamic assistant layer               │
+│ • resolveTodayAction() — daily nudge  │
+│ • Guide contexts — situational lists  │
+│ • AQI + city — local air tips         │
+│ • Challenges & budget — gamification  │
+│ • Family dashboard — household rollup │
+└───────────────────────────────────────┘
+        ↓
+React UI — Home / Log / Guide / Impact
+```
+
+**Key flows:**
+
+- **Home:** weekly summary + personalized “Do this today” card + personal footprint
+- **Log:** single hub for all activity types
+- **Guide:** pick context → interactive checklist → save progress
+- **Impact:** personal vs family toggle, 12-week trend, explain drill-down
+- **Family:** create/join household with code → per-member + combined CO₂
+
+Run locally:
+
+```bash
+git clone https://github.com/31pallavisrivastava-ux/greensteps.git
+cd greensteps && npm install && cp server/.env.example server/.env
+npm run db:push && npm run db:seed && npm run dev
+```
+
+Demo: `demo@carbon.local` / `demo1234` → http://localhost:5173
+
+Run tests: `npm test`
+
+### Assumptions
+
+- **Target users** are English-speaking urban Indians with smartphone access.
+- **Manual + semi-automatic logging** is acceptable for MVP (GPS trip drafts, manual confirm; bill OCR optional).
+- **SQLite** is sufficient for demo/evaluation; production would use a managed database.
+- **Emission factors** are static JSON seeded from CEA/IPCC benchmarks, not live API feeds.
+- **Family energy** may double-count if multiple members log the same bill — UI warns users to assign one bill logger per household.
+- **AQI** uses Open-Meteo from the user’s selected city; no street-level precision.
+- **Class leaderboard** compares CO₂ *saved*, not absolute footprint, to reward improvement.
+- **Authentication** is email/password with JWT; no OAuth in MVP.
+- **No real payment or merchant API integration** — delivery orders are user-declared.
+
+### Evaluation alignment
+
+| Tier | Area | How GreenSteps addresses it |
+|------|------|----------------------------|
+| **High** | Smart dynamic assistant | Priority rules engine (`resolveTodayAction`), context checklists, AQI nudges |
+| **High** | Context-based decisions | Onboarding profile + weekly footprint drive daily action |
+| **High** | Real-world usability | India merchants, CEA grid, mobile PWA, demo account |
+| **High** | Code quality | Monorepo, shared types, modular engines, consistent UI patterns |
+| **Medium** | Security | JWT auth, bcrypt passwords, Zod validation, `.env` for secrets |
+| **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
+| **Medium** | Testing | `npm test` — unit tests for assistant logic and bill OCR parser |
+| **Medium** | Accessibility | Skip links, focus rings, dialog trap, 44px targets, page titles |
+| **Low** | Polish | Block UI, screenshots, WhatsApp share cards, 12-week charts |
+
+---
+
 ## Table of contents
 
+- [Challenge submission](#challenge-submission)
 - [Screenshots](#screenshots)
 - [Stack](#stack)
 - [Quick start](#quick-start)
@@ -230,6 +340,7 @@ carbon-footprint-pwa/
 ```bash
 npm run dev          # client :5173 + server :3001
 npm run build        # shared → server → client
+npm run test         # unit tests (assistant logic, bill OCR)
 npm run db:push      # apply Prisma schema (required after model changes)
 npm run db:seed      # emission factors, merchants, demo user
 ```

@@ -1,32 +1,18 @@
 import { aggregateFootprint, aggregatePlastic } from '../emissions/engine.js'
 
-export async function getTodayAction(prisma, userId, user) {
-  const footprint = await aggregateFootprint(prisma, userId, 'week')
-  const plastic = await aggregatePlastic(prisma, userId, 'week')
-  const weekAgo = new Date()
-  weekAgo.setDate(weekAgo.getDate() - 7)
-
-  const [trips, orders, unconfirmed, energyReadings] = await Promise.all([
-    prisma.trip.findMany({
-      where: { userId, startedAt: { gte: weekAgo }, confirmedMode: { not: null } },
-    }),
-    prisma.deliveryOrder.findMany({
-      where: { userId, orderedAt: { gte: weekAgo } },
-    }),
-    prisma.trip.count({
-      where: { userId, confirmedMode: null, startedAt: { gte: weekAgo } },
-    }),
-    prisma.energyReading.count({
-      where: { userId, periodEnd: { gte: weekAgo } },
-    }),
-  ])
-
-  const total = footprint.total || 1
-  const powerShare = footprint.scope2 / total
-  const deliveryCount = orders.length
-  const publicTrips = trips.filter((t) => t.transportCategory === 'PUBLIC').length
-
-  const concern = user?.topConcern ?? null
+/** Pure decision tree for the daily assistant — testable without DB. */
+export function resolveTodayAction(ctx) {
+  const {
+    unconfirmed,
+    concern,
+    powerShare,
+    energyReadings,
+    deliveryCount,
+    publicTrips,
+    transportPreference,
+    plasticLandfillG,
+    plasticRecycledG,
+  } = ctx
 
   if (unconfirmed > 0) {
     return {
@@ -67,7 +53,7 @@ export async function getTodayAction(prisma, userId, user) {
     }
   }
 
-  if ((concern === 'TRAVEL' || user?.transportPreference === 'CAR') && publicTrips < 2) {
+  if ((concern === 'TRAVEL' || transportPreference === 'CAR') && publicTrips < 2) {
     return {
       id: 'public-transport',
       title: 'Take bus or metro once',
@@ -80,7 +66,7 @@ export async function getTodayAction(prisma, userId, user) {
     }
   }
 
-  if (concern === 'PLASTIC' || plastic.landfillG > plastic.recycledG) {
+  if (concern === 'PLASTIC' || plasticLandfillG > plasticRecycledG) {
     return {
       id: 'recycle-plastic',
       title: 'Log recycled plastic',
@@ -116,4 +102,45 @@ export async function getTodayAction(prisma, userId, user) {
     emoji: '✅',
     priority: 50,
   }
+}
+
+export async function getTodayAction(prisma, userId, user) {
+  const footprint = await aggregateFootprint(prisma, userId, 'week')
+  const plastic = await aggregatePlastic(prisma, userId, 'week')
+  const weekAgo = new Date()
+  weekAgo.setDate(weekAgo.getDate() - 7)
+
+  const [trips, orders, unconfirmed, energyReadings] = await Promise.all([
+    prisma.trip.findMany({
+      where: { userId, startedAt: { gte: weekAgo }, confirmedMode: { not: null } },
+    }),
+    prisma.deliveryOrder.findMany({
+      where: { userId, orderedAt: { gte: weekAgo } },
+    }),
+    prisma.trip.count({
+      where: { userId, confirmedMode: null, startedAt: { gte: weekAgo } },
+    }),
+    prisma.energyReading.count({
+      where: { userId, periodEnd: { gte: weekAgo } },
+    }),
+  ])
+
+  const total = footprint.total || 1
+  const powerShare = footprint.scope2 / total
+  const deliveryCount = orders.length
+  const publicTrips = trips.filter((t) => t.transportCategory === 'PUBLIC').length
+
+  const concern = user?.topConcern ?? null
+
+  return resolveTodayAction({
+    unconfirmed,
+    concern,
+    powerShare,
+    energyReadings,
+    deliveryCount,
+    publicTrips,
+    transportPreference: user?.transportPreference ?? null,
+    plasticLandfillG: plastic.landfillG,
+    plasticRecycledG: plastic.recycledG,
+  })
 }
