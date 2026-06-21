@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Play, Square } from 'lucide-react'
+import { MapPin, Navigation, Play, Square, Plus } from 'lucide-react'
 import { api } from '../lib/api'
 import {
   getTripDistanceKm,
@@ -9,10 +9,11 @@ import {
   stopTripTracking,
   type GpsPoint,
 } from '../lib/geolocation/tripDetector'
-import type { TripResponse } from '@carbon/shared'
+import type { TripResponse, ActionReward } from '@carbon/shared'
+import { CelebrationBanner } from '../components/rewards'
 import { useAuth } from '../lib/auth'
-
-const MODES = ['WALK', 'CYCLE', 'BUS', 'METRO', 'CAR', 'BIKE', 'TAXI', 'AUTO'] as const
+import { PageHeader, EmptyState } from '../components/ui'
+import { TRANSPORT_MODES, getModeInfo, ModeIcon } from '../lib/transportModes'
 
 export function TripsPage() {
   const { user } = useAuth()
@@ -20,8 +21,9 @@ export function TripsPage() {
   const [tracking, setTracking] = useState(isTracking())
   const [points, setPoints] = useState<GpsPoint[]>([])
   const [confirmId, setConfirmId] = useState<string | null>(null)
-  const [selectedMode, setSelectedMode] = useState<string>('CAR')
+  const [selectedMode, setSelectedMode] = useState<string>('METRO')
   const [vehicleId, setVehicleId] = useState('')
+  const [lastReward, setLastReward] = useState<ActionReward | null>(null)
   const [manual, setManual] = useState({ distanceKm: 5, mode: 'METRO' })
 
   const load = () => api<TripResponse[]>('/trips').then(setTrips).catch(console.error)
@@ -31,8 +33,8 @@ export function TripsPage() {
     try {
       await startTripTracking(setPoints)
       setTracking(true)
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'GPS failed')
+    } catch {
+      alert('Location access is needed to track your trip. Please allow GPS in your browser settings.')
     }
   }
 
@@ -56,12 +58,12 @@ export function TripsPage() {
       load()
     } catch {
       await queueOfflineTrip(payload)
-      alert('Saved offline — will sync when online')
+      alert('Saved offline. It will sync when you are back online.')
     }
   }
 
   const confirmTrip = async (id: string) => {
-    await api(`/trips/${id}/confirm`, {
+    const res = await api<TripResponse & { reward?: ActionReward | null }>(`/trips/${id}/confirm`, {
       method: 'PATCH',
       body: JSON.stringify({
         confirmedMode: selectedMode,
@@ -70,13 +72,14 @@ export function TripsPage() {
       }),
     })
     setConfirmId(null)
+    if (res.reward) setLastReward(res.reward)
     load()
   }
 
   const addManual = async () => {
     const now = new Date()
     const start = new Date(now.getTime() - 30 * 60000)
-    await api('/trips/manual', {
+    const res = await api<TripResponse & { reward?: ActionReward | null }>('/trips/manual', {
       method: 'POST',
       body: JSON.stringify({
         startedAt: start.toISOString(),
@@ -86,123 +89,177 @@ export function TripsPage() {
         isCommute: true,
       }),
     })
+    if (res.reward) setLastReward(res.reward)
     load()
   }
 
+  const pendingId = confirmId ?? trips.find((t) => !t.confirmedMode)?.id
+
   return (
-    <div className="space-y-4">
-      <div className="card">
-        <h2 className="font-semibold text-brand">GPS commute tracking</h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Foreground tracking · {points.length} points · {getTripDistanceKm(points).toFixed(2)} km
-        </p>
-        <div className="mt-3 flex gap-2">
+    <div className="space-y-5">
+      <PageHeader
+        icon={MapPin}
+        iconBg="bg-indigo-100"
+        iconColor="text-indigo-700"
+        title="Travel & commute"
+        subtitle="Record how you got from place to place"
+        help="Tip: Press Start when you begin travelling, and Stop when you arrive. We will ask how you travelled — bus, metro, car, etc."
+      />
+
+      {lastReward && <CelebrationBanner reward={lastReward} />}
+
+      <div className={`card ${tracking ? 'border-2 border-brand ring-4 ring-brand/10' : ''}`}>
+        <div className="flex items-center gap-3">
+          <div className={`icon-circle ${tracking ? 'bg-brand' : 'bg-indigo-100'}`}>
+            <Navigation className={`h-7 w-7 ${tracking ? 'text-white' : 'text-indigo-700'}`} aria-hidden />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              {tracking ? 'Tracking your trip…' : 'Live GPS tracking'}
+            </h2>
+            <p className="text-sm text-slate-500">
+              Distance so far: <strong>{getTripDistanceKm(points).toFixed(1)} km</strong>
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex gap-3">
           {!tracking ? (
-            <button className="btn-primary flex items-center gap-2" onClick={handleStart}>
-              <Play className="h-4 w-4" /> Start trip
+            <button type="button" className="btn-primary flex-1" onClick={handleStart}>
+              <Play className="h-5 w-5" aria-hidden /> Start trip
             </button>
           ) : (
-            <button className="btn-primary flex items-center gap-2 bg-red-700" onClick={handleStop}>
-              <Square className="h-4 w-4" /> Stop & save
+            <button type="button" className="btn-danger flex-1" onClick={handleStop}>
+              <Square className="h-5 w-5" aria-hidden /> Stop trip
             </button>
           )}
         </div>
       </div>
 
-      {(confirmId || trips.some((t) => !t.confirmedMode)) && (
-        <div className="card border-brand/30">
-          <h3 className="text-sm font-semibold">Confirm transport mode</h3>
-          <p className="text-xs text-slate-500">Public vs private classification</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {MODES.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setSelectedMode(m)}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  selectedMode === m ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
+      {pendingId && (
+        <div className="card border-2 border-brand/30 bg-brand-muted/50">
+          <h3 className="text-lg font-bold text-brand">How did you travel?</h3>
+          <p className="hint mb-4">Tap the option that best matches your trip</p>
+          <div className="flex flex-wrap gap-2">
+            {TRANSPORT_MODES.map((m) => {
+              const Icon = m.icon
+              const active = selectedMode === m.id
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSelectedMode(m.id)}
+                  className={`chip ${active ? 'chip-active' : 'chip-inactive'}`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden />
+                  {m.label}
+                </button>
+              )
+            })}
           </div>
           {user?.vehicles?.length ? (
-            <select
-              className="input mt-2"
-              value={vehicleId}
-              onChange={(e) => setVehicleId(e.target.value)}
-            >
-              <option value="">No vehicle</option>
-              {user.vehicles.map((v) => (
-                <option key={v.id} value={v.id}>{v.label}</option>
-              ))}
-            </select>
+            <div className="mt-4">
+              <label className="label" htmlFor="vehicle">Your vehicle (optional)</label>
+              <select
+                id="vehicle"
+                className="input"
+                value={vehicleId}
+                onChange={(e) => setVehicleId(e.target.value)}
+              >
+                <option value="">Not applicable</option>
+                {user.vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>{v.label}</option>
+                ))}
+              </select>
+            </div>
           ) : null}
-          <button
-            className="btn-primary mt-3"
-            onClick={() => confirmTrip(confirmId ?? trips.find((t) => !t.confirmedMode)!.id)}
-          >
-            Confirm mode
+          <button type="button" className="btn-primary mt-4 w-full" onClick={() => confirmTrip(pendingId)}>
+            Save my answer
           </button>
         </div>
       )}
 
       <div className="card">
-        <h3 className="text-sm font-semibold">Manual trip</h3>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+          <Plus className="h-5 w-5 text-brand" aria-hidden />
+          Add trip manually
+        </h3>
+        <p className="hint mb-4">If you already know the distance and how you travelled</p>
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">Distance (km)</label>
+            <label className="label" htmlFor="distance">Distance (km)</label>
             <input
+              id="distance"
               className="input"
               type="number"
+              min={0.1}
+              step={0.1}
               value={manual.distanceKm}
               onChange={(e) => setManual({ ...manual, distanceKm: +e.target.value })}
             />
           </div>
           <div>
-            <label className="label">Mode</label>
+            <label className="label" htmlFor="mode">How you travelled</label>
             <select
+              id="mode"
               className="input"
               value={manual.mode}
               onChange={(e) => setManual({ ...manual, mode: e.target.value })}
             >
-              {MODES.map((m) => (
-                <option key={m} value={m}>{m}</option>
+              {TRANSPORT_MODES.map((m) => (
+                <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </select>
           </div>
         </div>
-        <button className="btn-secondary mt-2 w-full" onClick={addManual}>
-          Add manual trip
+        <button type="button" className="btn-secondary mt-4 w-full" onClick={addManual}>
+          Add this trip
         </button>
       </div>
 
-      <h2 className="text-sm font-semibold">Recent trips</h2>
-      <div className="space-y-2">
-        {trips.map((t) => (
-          <div key={t.id} className="card text-sm">
-            <div className="flex justify-between">
-              <span className="font-medium">
-                {t.confirmedMode ?? t.suggestedMode}
-                {!t.confirmedMode && (
-                  <span className="ml-1 text-xs text-amber-600">(unconfirmed)</span>
-                )}
-              </span>
-              <span className="text-slate-500">{t.distanceKm.toFixed(1)} km</span>
-            </div>
-            <div className="mt-1 flex justify-between text-xs text-slate-500">
-              <span>{new Date(t.startedAt).toLocaleDateString()}</span>
-              <span>{t.co2eKg != null ? `${t.co2eKg.toFixed(2)} kg CO₂e` : '—'}</span>
-            </div>
-            {t.transportCategory && (
-              <span className="mt-1 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs">
-                {t.transportCategory}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
+      <h2 className="section-title">Past trips</h2>
+      {trips.length === 0 ? (
+        <EmptyState
+          icon={MapPin}
+          title="No trips yet"
+          message="Start GPS tracking or add a trip manually. Your travel history will show here."
+        />
+      ) : (
+        <div className="space-y-3">
+          {trips.map((t) => {
+            const mode = getModeInfo(t.confirmedMode ?? t.suggestedMode)
+            return (
+              <div key={t.id} className="card flex gap-4">
+                <div className="icon-circle bg-slate-100">
+                  <ModeIcon mode={mode.id} className="h-6 w-6 text-slate-700" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between gap-2">
+                    <p className="font-bold text-slate-900">{mode.label}</p>
+                    <p className="font-semibold text-brand">{t.distanceKm.toFixed(1)} km</p>
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    {new Date(t.startedAt).toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </p>
+                  {!t.confirmedMode && (
+                    <span className="mt-2 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                      Needs confirmation
+                    </span>
+                  )}
+                  {t.co2eKg != null && (
+                    <p className="mt-1 text-sm font-medium text-slate-700">
+                      {t.co2eKg.toFixed(2)} kg CO₂
+                    </p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

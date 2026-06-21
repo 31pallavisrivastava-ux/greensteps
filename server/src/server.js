@@ -11,6 +11,9 @@ import { plasticRouter } from './routes/plastic.js'
 import { emissionsRouter, insightsRouter } from './routes/insights.js'
 import { packagingRouter, usersRouter } from './routes/users.js'
 import { offlineRouter } from './routes/offline.js'
+import { guideRouter } from './routes/guide.js'
+import { engageRouter } from './routes/engage.js'
+import { groupsRouter } from './routes/groups.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3001
@@ -34,6 +37,9 @@ app.use('/api/emissions', emissionsRouter)
 app.use('/api/insights', insightsRouter)
 app.use('/api/packaging', packagingRouter)
 app.use('/api/offline', offlineRouter)
+app.use('/api/guide', guideRouter)
+app.use('/api/engage', engageRouter)
+app.use('/api/groups', groupsRouter)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

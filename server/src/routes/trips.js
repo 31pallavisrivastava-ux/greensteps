@@ -7,6 +7,7 @@ import {
   inferModeFromPoints,
   transportCategoryForMode,
 } from '../modules/emissions/engine.js'
+import { computeTripReward } from '../modules/rewards/engine.js'
 
 export const tripsRouter = Router()
 tripsRouter.use(authMiddleware)
@@ -128,7 +129,8 @@ tripsRouter.post('/manual', async (req, res) => {
         fuelLitersEst: emissions.fuelLitersEst,
       },
     })
-    res.status(201).json(mapTrip(trip))
+    const reward = computeTripReward(trip)
+    res.status(201).json({ ...mapTrip(trip), reward })
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
     res.status(500).json({ error: 'Failed to create manual trip' })
@@ -174,7 +176,8 @@ tripsRouter.patch('/:id/confirm', async (req, res) => {
         fuelLitersEst: emissions.fuelLitersEst,
       },
     })
-    res.json(mapTrip(updated))
+    const reward = computeTripReward(updated)
+    res.json({ ...mapTrip(updated), reward })
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
     res.status(500).json({ error: 'Failed to confirm trip' })

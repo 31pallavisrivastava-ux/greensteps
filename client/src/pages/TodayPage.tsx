@@ -1,80 +1,83 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, ChevronRight } from 'lucide-react'
+import { AlertCircle, GraduationCap, PenLine, BookOpen } from 'lucide-react'
 import { api } from '../lib/api'
-import type { TripResponse, WeeklyInsight } from '@carbon/shared'
+import { HomeHero } from '../components/HomeHero'
+import { EngagePanel } from '../components/engage/EngagePanel'
+import { QuickActions } from '../components/ui-extra'
+import { LoadingScreen, TipCard } from '../components/ui'
+import { TodayActionCard } from '../components/TodayActionCard'
+import type { CommunityComparison, EngageDashboard, TodayAction, TripResponse, WeeklyInsight } from '@carbon/shared'
 
 export function TodayPage() {
   const [insight, setInsight] = useState<WeeklyInsight | null>(null)
+  const [comparison, setComparison] = useState<CommunityComparison | null>(null)
+  const [engage, setEngage] = useState<EngageDashboard | null>(null)
+  const [todayAction, setTodayAction] = useState<TodayAction | null>(null)
   const [pendingTrips, setPendingTrips] = useState<TripResponse[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api<WeeklyInsight>('/insights/weekly').then(setInsight).catch(console.error)
-    api<TripResponse[]>('/trips').then((trips) => {
-      setPendingTrips(trips.filter((t) => !t.confirmedMode).slice(0, 3))
-    }).catch(console.error)
+    Promise.all([
+      api<WeeklyInsight>('/insights/weekly'),
+      api<TripResponse[]>('/trips'),
+      api<CommunityComparison>('/guide/comparison'),
+      api<EngageDashboard>('/engage/dashboard'),
+      api<TodayAction>('/engage/today-action'),
+    ])
+      .then(([ins, trips, comp, eng, action]) => {
+        setInsight(ins)
+        setComparison(comp)
+        setEngage(eng)
+        setTodayAction(action)
+        setPendingTrips(trips.filter((t) => !t.confirmedMode).slice(0, 3))
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }, [])
 
-  const quickLinks = [
-    { to: '/trips', label: 'Track commute', desc: 'GPS or manual trip' },
-    { to: '/fuel', label: 'Log fuel fill', desc: 'Scope 1 · petrol/diesel' },
-    { to: '/energy', label: 'Log energy bill', desc: 'Scope 2 · CEA grid factor' },
-    { to: '/purchases', label: 'Log delivery order', desc: 'Blinkit, Swiggy, Zomato…' },
-    { to: '/plastic', label: 'Log plastic disposal', desc: 'Recycle vs landfill' },
-  ]
+  if (loading) {
+    return <LoadingScreen label="Loading home…" />
+  }
 
   return (
-    <div className="space-y-4">
-      {insight && (
-        <div className="card bg-brand text-white">
-          <p className="text-xs uppercase opacity-80">This week</p>
-          <p className="mt-1 text-2xl font-semibold">
-            {(insight.footprint.total).toFixed(1)} kg CO₂e
-          </p>
-          <div className="mt-2 flex gap-3 text-xs">
-            <span>S1: {insight.footprint.scope1.toFixed(1)}</span>
-            <span>S2: {insight.footprint.scope2.toFixed(1)}</span>
-            <span>S3: {insight.footprint.scope3.toFixed(1)}</span>
-          </div>
-        </div>
+    <div className="page-stack">
+      <h1 className="sr-only">Home</h1>
+      {insight && comparison && engage && (
+        <HomeHero insight={insight} budget={engage.budget} comparison={comparison} />
       )}
+
+      {todayAction && <TodayActionCard action={todayAction} />}
+
+      <QuickActions
+        actions={[
+          { to: '/log', icon: <PenLine className="h-5 w-5" aria-hidden />, label: 'Log', colorKey: 'log' },
+          { to: '/guide', icon: <BookOpen className="h-5 w-5" aria-hidden />, label: 'Guide', colorKey: 'guide' },
+          { to: '/class', icon: <GraduationCap className="h-5 w-5" aria-hidden />, label: 'Class', colorKey: 'class' },
+        ]}
+      />
+
+      {engage && <EngagePanel dashboard={engage} variant="home" />}
 
       {pendingTrips.length > 0 && (
-        <div className="card border-amber-200 bg-amber-50">
-          <div className="flex items-center gap-2 text-amber-800">
-            <Activity className="h-4 w-4" />
-            <p className="text-sm font-medium">
-              {pendingTrips.length} trip(s) need confirmation
+        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-amber-950">
+              {pendingTrips.length} trip{pendingTrips.length > 1 ? 's' : ''} to confirm
             </p>
+            <Link to="/trips" className="mt-1 inline-block text-sm font-semibold text-amber-800 underline">
+              Confirm now
+            </Link>
           </div>
-          <Link to="/trips" className="mt-2 inline-block text-sm text-brand underline">
-            Confirm now →
-          </Link>
         </div>
       )}
 
-      {insight?.tips.map((tip, i) => (
-        <div key={i} className="card text-sm text-slate-600">
-          💡 {tip}
-        </div>
-      ))}
+      {insight?.tips[0] && <TipCard>{insight.tips[0]}</TipCard>}
 
-      <h2 className="text-sm font-semibold text-slate-700">Quick log</h2>
-      <div className="space-y-2">
-        {quickLinks.map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className="card flex items-center justify-between transition hover:border-brand/30"
-          >
-            <div>
-              <p className="font-medium text-slate-800">{link.label}</p>
-              <p className="text-xs text-slate-500">{link.desc}</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-slate-400" />
-          </Link>
-        ))}
-      </div>
+      <Link to="/insights" className="block text-center text-sm font-semibold text-brand">
+        View full impact report →
+      </Link>
     </div>
   )
 }

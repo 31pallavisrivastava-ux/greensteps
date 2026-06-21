@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { signToken } from '../middleware/auth.js'
+import { serializeUser } from '../lib/userProfile.js'
 
 export const authRouter = Router()
 
@@ -29,7 +30,7 @@ authRouter.post('/register', async (req, res) => {
       },
     })
     const token = signToken(user.id)
-    res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, state: user.state } })
+    res.status(201).json({ token, user: serializeUser(user) })
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
     res.status(500).json({ error: 'Registration failed' })
@@ -44,7 +45,7 @@ authRouter.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' })
     }
     const token = signToken(user.id)
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, state: user.state } })
+    res.json({ token, user: serializeUser(user) })
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
     res.status(500).json({ error: 'Login failed' })

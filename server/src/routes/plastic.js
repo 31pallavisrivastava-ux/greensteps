@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { aggregatePlastic } from '../modules/emissions/engine.js'
+import { computePlasticReward } from '../modules/rewards/engine.js'
 
 export const plasticRouter = Router()
 plasticRouter.use(authMiddleware)
@@ -31,7 +32,8 @@ plasticRouter.post('/disposal', async (req, res) => {
         confidence: 0.95,
       },
     })
-    res.status(201).json(event)
+    const reward = computePlasticReward(event)
+    res.status(201).json({ ...event, reward })
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
     res.status(500).json({ error: 'Failed to log disposal' })

@@ -132,6 +132,32 @@ export interface PlasticSummary {
   byMerchant: Record<string, number>
 }
 
+export interface ActionReward {
+  title: string
+  message: string
+  co2SavedKg?: number
+  energySavedKwh?: number
+  plasticRecycledG?: number
+  type: 'celebration' | 'info'
+}
+
+export interface RewardBadge {
+  id: string
+  label: string
+  emoji: string
+}
+
+export interface WeeklyRewards {
+  headline: string
+  co2SavedKg: number
+  energySavedKwh: number
+  plasticRecycledG: number
+  treesEquivalent: number
+  badges: RewardBadge[]
+  highlights: Array<{ icon: string; text: string }>
+  level: 'starter' | 'bronze' | 'silver' | 'gold'
+}
+
 export interface WeeklyInsight {
   tips: string[]
   commuteSplit: { public: number; private: number; active: number }
@@ -141,17 +167,246 @@ export interface WeeklyInsight {
     shift10pctToPublic: { savedKg: number }
     reduceDeliveryOrdersBy2: { savedPlasticG: number; savedCo2eKg: number }
   }
+  rewards: WeeklyRewards
+}
+
+export interface CommunityComparison {
+  percentile: number
+  rankLabel: string
+  user: {
+    co2SavedKg: number
+    co2TotalKg: number
+    plasticGrams: number
+    recycledGrams: number
+    deliveryOrders: number
+  }
+  community: {
+    weeklyCo2TotalAvg: number
+    weeklyCo2SavedAvg: number
+    weeklyPlasticGramsAvg: number
+    weeklyDeliveryOrdersAvg: number
+  }
+  vsAverage: {
+    co2SavedDiffKg: number
+    co2SavedPct: number
+    co2TotalDiffKg: number
+    co2TotalPct: number
+    plasticDiffG: number
+    deliveryOrdersDiff: number
+  }
+  wins: string[]
+}
+
+export interface ContextChecklistItem {
+  id: string
+  label: string
+  tip: string
+  co2eHint: string
+}
+
+export interface ContextChecklist {
+  id: string
+  label: string
+  emoji: string
+  intro: string
+  items: ContextChecklistItem[]
+}
+
+export interface SustainabilityTip {
+  id: string
+  category: string
+  title: string
+  body: string
+  icon: string
+}
+
+export interface ShareMilestone {
+  title: string
+  text: string
+  url: string
+}
+
+export interface ShareCardPayload {
+  userName: string
+  headline: string
+  co2SavedKg: number
+  co2TotalKg: number
+  percentile: number
+  rankLabel: string
+  badges: RewardBadge[]
+  contextEmoji?: string
+  contextLabel?: string
+  checklistPct?: number
+}
+
+export interface WeeklyChallenge {
+  id: string
+  title: string
+  description: string
+  emoji: string
+  target: number
+  current: number
+  progressPct: number
+  completed: boolean
+}
+
+export interface StreakInfo {
+  id: string
+  label: string
+  emoji: string
+  days: number
+  best: number
+  hint: string
+}
+
+export interface CarbonBudget {
+  usedKg: number
+  fairShareKg: number
+  remainingKg: number
+  usedPct: number
+  overBudget: boolean
+  status: 'on_track' | 'warning' | 'over'
+  statusLabel: string
+  annualFairShareKg: number
+  source: string
+}
+
+export interface AqiReading {
+  city: string
+  usAqi: number | null
+  pm25: number | null
+  pm10: number | null
+  level: string
+  label: string
+  color: string
+  updatedAt: string | null
+}
+
+export interface AqiNudge {
+  show: boolean
+  severity: 'good' | 'info' | 'warning' | 'danger'
+  title: string
+  message: string
+  action: string
+}
+
+export interface EngageDashboard {
+  challenges: WeeklyChallenge[]
+  streaks: StreakInfo[]
+  budget: CarbonBudget
+  aqi: AqiReading
+  aqiNudge: AqiNudge
+  rewardsSummary: { co2SavedKg: number; headline: string }
+}
+
+export interface ClassGroupSummary {
+  id: string
+  name: string
+  joinCode: string
+  memberCount: number
+  joinedAt: string
+}
+
+export interface LeaderboardEntry {
+  rank: number
+  userId: string
+  name: string
+  co2SavedKg: number
+  co2TotalKg: number
+  publicTrips: number
+  deliveryOrders: number
+  isYou: boolean
+}
+
+export interface ClassLeaderboard {
+  group: { id: string; name: string; joinCode: string; memberCount: number }
+  leaderboard: LeaderboardEntry[]
+  yourRank: number | null
 }
 
 export interface UserProfile {
   id: string
   email: string
   name: string | null
+  city: string | null
   state: string | null
   homeLat: number | null
   homeLng: number | null
   workLat: number | null
   workLng: number | null
+  onboardingCompleted: boolean
+  transportPreference: TransportPreference | null
+  topConcern: TopConcern | null
+}
+
+export type TransportPreference = 'CAR' | 'BUS_METRO' | 'WALK_CYCLE' | 'MIXED'
+export type TopConcern = 'POWER' | 'TRAVEL' | 'DELIVERY' | 'PLASTIC'
+
+export interface CityOption {
+  name: string
+  lat: number
+  lng: number
+  state: string
+}
+
+export interface TodayAction {
+  id: string
+  title: string
+  message: string
+  actionLabel: string
+  link: string
+  impactHint: string
+  emoji: string
+  priority: number
+}
+
+export interface WeeklyHistoryPoint {
+  weekStart: string
+  weekEnd: string
+  label: string
+  scope1: number
+  scope2: number
+  scope3: number
+  total: number
+  tripCount: number
+  orderCount: number
+}
+
+export interface FootprintHistory {
+  weeks: WeeklyHistoryPoint[]
+  trend: {
+    deltaKg: number
+    direction: 'up' | 'down' | 'flat'
+    message: string
+  }
+}
+
+export interface FootprintExplainLine {
+  scope: string
+  category: string
+  label: string
+  co2eKg: number
+  formula: string
+  source: string
+  detail?: string
+}
+
+export interface FootprintExplanation {
+  totalKg: number
+  scope1: number
+  scope2: number
+  scope3: number
+  lines: FootprintExplainLine[]
+  topLine: FootprintExplainLine | null
+}
+
+export interface BillOcrResult {
+  kwh: number | null
+  periodStart: string | null
+  periodEnd: string | null
+  confidence: number
+  message: string
+  rawText?: string
 }
 
 export interface VehicleDto {

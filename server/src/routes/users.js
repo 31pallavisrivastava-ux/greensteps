@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
+import { serializeUser } from '../lib/userProfile.js'
+import { INDIAN_CITIES } from '../modules/engage/engine.js'
 
 export const packagingRouter = Router()
 
@@ -33,17 +35,7 @@ usersRouter.get('/me', async (req, res) => {
     include: { vehicles: true },
   })
   if (!user) return res.status(404).json({ error: 'Not found' })
-  res.json({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    state: user.state,
-    homeLat: user.homeLat,
-    homeLng: user.homeLng,
-    workLat: user.workLat,
-    workLng: user.workLng,
-    vehicles: user.vehicles,
-  })
+  res.json(serializeUser(user))
 })
 
 usersRouter.patch('/me', async (req, res) => {
@@ -51,20 +43,32 @@ usersRouter.patch('/me', async (req, res) => {
     const body = z
       .object({
         name: z.string().optional(),
+        city: z.string().optional(),
         state: z.string().optional(),
         homeLat: z.number().optional(),
         homeLng: z.number().optional(),
         workLat: z.number().optional(),
         workLng: z.number().optional(),
+        onboardingCompleted: z.boolean().optional(),
+        transportPreference: z.enum(['CAR', 'BUS_METRO', 'WALK_CYCLE', 'MIXED']).optional(),
+        topConcern: z.enum(['POWER', 'TRAVEL', 'DELIVERY', 'PLASTIC']).optional(),
       })
       .parse(req.body)
 
+    const data = { ...body }
+    if (body.city && INDIAN_CITIES[body.city]) {
+      const meta = INDIAN_CITIES[body.city]
+      data.state = meta.state
+      data.homeLat = meta.lat
+      data.homeLng = meta.lng
+    }
+
     const user = await prisma.user.update({
       where: { id: req.userId },
-      data: body,
+      data,
       include: { vehicles: true },
     })
-    res.json(user)
+    res.json(serializeUser(user))
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ error: e.errors })
     res.status(500).json({ error: 'Update failed' })

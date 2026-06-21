@@ -7,6 +7,8 @@ import {
   compareScenarios,
   getAllFactors,
 } from '../modules/emissions/engine.js'
+import { computeWeeklyRewards } from '../modules/rewards/engine.js'
+import { getWeeklyHistory, explainFootprint } from '../modules/insights/history.js'
 
 export const emissionsRouter = Router()
 emissionsRouter.use(authMiddleware)
@@ -32,7 +34,7 @@ insightsRouter.get('/weekly', async (req, res) => {
   const weekAgo = new Date()
   weekAgo.setDate(weekAgo.getDate() - 7)
 
-  const [trips, orders, unconfirmed] = await Promise.all([
+  const [trips, orders, unconfirmed, energy] = await Promise.all([
     prisma.trip.findMany({
       where: { userId: req.userId, startedAt: { gte: weekAgo }, confirmedMode: { not: null } },
     }),
@@ -41,6 +43,9 @@ insightsRouter.get('/weekly', async (req, res) => {
     }),
     prisma.trip.count({
       where: { userId: req.userId, confirmedMode: null, startedAt: { gte: weekAgo } },
+    }),
+    prisma.energyReading.findMany({
+      where: { userId: req.userId, periodEnd: { gte: weekAgo } },
     }),
   ])
 
@@ -73,6 +78,7 @@ insightsRouter.get('/weekly', async (req, res) => {
   }
 
   const scenarios = compareScenarios(footprint, plastic, trips, orders)
+  const rewards = computeWeeklyRewards({ trips, energy, plastic, orders })
 
   res.json({
     tips: tips.slice(0, 2),
@@ -84,5 +90,17 @@ insightsRouter.get('/weekly', async (req, res) => {
     footprint,
     plastic,
     scenarios,
+    rewards,
   })
+})
+
+insightsRouter.get('/history', async (req, res) => {
+  const weeks = Math.min(24, Math.max(4, Number(req.query.weeks) || 12))
+  const history = await getWeeklyHistory(prisma, req.userId, weeks)
+  res.json(history)
+})
+
+insightsRouter.get('/explain', async (req, res) => {
+  const explanation = await explainFootprint(prisma, req.userId)
+  res.json(explanation)
 })

@@ -1,0 +1,14 @@
+{
+  "Delhi": { "lat": 28.6139, "lng": 77.209, "state": "IN-DL" },
+  "Mumbai": { "lat": 19.076, "lng": 72.8777, "state": "IN-MH" },
+  "Bengaluru": { "lat": 12.9716, "lng": 77.5946, "state": "IN-KA" },
+  "Hyderabad": { "lat": 17.385, "lng": 78.4867, "state": "IN-TG" },
+  "Chennai": { "lat": 13.0827, "lng": 80.2707, "state": "IN-TN" },
+  "Kolkata": { "lat": 22.5726, "lng": 88.3639, "state": "IN-WB" },
+  "Pune": { "lat": 18.5204, "lng": 73.8567, "state": "IN-MH" },
+  "Ahmedabad": { "lat": 23.0225, "lng": 72.5714, "state": "IN-GJ" },
+  "Jaipur": { "lat": 26.9124, "lng": 75.7873, "state": "IN-RJ" },
+  "Lucknow": { "lat": 26.8467, "lng": 80.9462, "state": "IN-UP" },
+  "Noida": { "lat": 28.5355, "lng": 77.391, "state": "IN-UP" },
+  "Gurugram": { "lat": 28.4595, "lng": 77.0266, "state": "IN-HR" }
+}

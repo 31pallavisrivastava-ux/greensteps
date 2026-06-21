@@ -1,0 +1,69 @@
+{
+  "BEACH": {
+    "id": "BEACH",
+    "label": "At the beach",
+    "emoji": "🏖️",
+    "intro": "Enjoy the sea — leave only footprints! This checklist keeps your beach day low-carbon.",
+    "items": [
+      { "id": "beach-bag", "label": "Bring a reusable bag & water bottle", "tip": "Avoids ~30g plastic + bottle waste", "co2eHint": "0.05 kg saved" },
+      { "id": "beach-no-plastic", "label": "Say no to plastic straws & cutlery", "tip": "One straw ≈ 1g plastic that can reach the ocean", "co2eHint": "Protects marine life" },
+      { "id": "beach-carry-trash", "label": "Carry your trash back — don't burn or bury", "tip": "Burning plastic releases toxic CO₂ and fumes", "co2eHint": "0.2 kg CO₂ avoided" },
+      { "id": "beach-public-transport", "label": "Came by bus, train, or shared ride?", "tip": "One car trip can be 5× more CO₂ than public transport", "co2eHint": "Up to 2 kg saved" },
+      { "id": "beach-sunscreen-reef", "label": "Use reef-safe sunscreen (no micro-plastics)", "tip": "Microbeads pollute water and harm fish", "co2eHint": "Ocean health" },
+      { "id": "beach-no-feed-wildlife", "label": "Don't feed animals packaged snacks", "tip": "Wrapper litter is a top beach pollution source", "co2eHint": "Less landfill plastic" }
+    ]
+  },
+  "SCHOOL": {
+    "id": "SCHOOL",
+    "label": "At school / college",
+    "emoji": "🏫",
+    "intro": "Small habits at school add up! Tick what you did today.",
+    "items": [
+      { "id": "school-bottle", "label": "Brought reusable water bottle", "tip": "1 less PET bottle ≈ 25g plastic + 0.15 kg CO₂", "co2eHint": "0.15 kg saved" },
+      { "id": "school-lunch-box", "label": "Homemade lunch in a tiffin box", "tip": "Skips delivery packaging & fuel for one order", "co2eHint": "0.12 kg + 40g plastic" },
+      { "id": "school-bus-metro", "label": "Took bus, metro, or walked", "tip": "School commute by car daily ≈ 3 kg CO₂/week", "co2eHint": "Up to 0.5 kg/trip" },
+      { "id": "school-lights-off", "label": "Switched off fans & lights when leaving class", "tip": "1 hour of 2 fans ≈ 0.15 kWh", "co2eHint": "0.1 kg CO₂ saved" },
+      { "id": "school-double-side", "label": "Used both sides of notebook paper", "tip": "Less paper = less tree cutting & processing energy", "co2eHint": "Paper footprint" },
+      { "id": "school-recycle", "label": "Put paper/plastic in separate bins", "tip": "Recycling 100g plastic saves landfill methane", "co2eHint": "Community win" }
+    ]
+  },
+  "HOME": {
+    "id": "HOME",
+    "label": "At home",
+    "emoji": "🏠",
+    "intro": "Home is where big savings happen — electricity, cooking, and waste.",
+    "items": [
+      { "id": "home-unplug", "label": "Unplugged chargers & TV when not in use", "tip": "Standby power can be 5–10% of home electricity", "co2eHint": "0.2 kg/month" },
+      { "id": "home-ac-26", "label": "AC at 26°C or used fan instead", "tip": "Each 1°C lower on AC ≈ 6% more power", "co2eHint": "0.3 kg/day possible" },
+      { "id": "home-led", "label": "Used LED bulbs in main rooms", "tip": "LED uses 75% less energy than old bulbs", "co2eHint": "Long-term save" },
+      { "id": "home-compost", "label": "Segregated wet & dry waste", "tip": "Less landfill = less methane (strong greenhouse gas)", "co2eHint": "Methane reduction" },
+      { "id": "home-solar", "label": "Used solar or dried clothes in sun", "tip": "Dryer/skipping solar offset saves grid power", "co2eHint": "0.5 kg per load" },
+      { "id": "home-bulk-buy", "label": "Avoided extra delivery app order", "tip": "One less delivery ≈ 0.08 kg CO₂ + 20g plastic", "co2eHint": "0.08 kg saved" }
+    ]
+  },
+  "TRAVEL": {
+    "id": "TRAVEL",
+    "label": "Out travelling / trip",
+    "emoji": "✈️",
+    "intro": "Travel days have high impact — these steps keep it lower.",
+    "items": [
+      { "id": "travel-metro-bus", "label": "Chose train, metro, or bus over taxi", "tip": "Train emits ~70% less CO₂ per km than solo car", "co2eHint": "Up to 3 kg saved" },
+      { "id": "travel-hotel-lights", "label": "Turned off AC & lights leaving hotel room", "tip": "Hotel energy is Scope 2 — still counts globally", "co2eHint": "0.15 kg/night" },
+      { "id": "travel-refill", "label": "Refilled bottle instead of buying new", "tip": "Avoids PET bottle production emissions", "co2eHint": "0.15 kg each" },
+      { "id": "travel-local-food", "label": "Ate local / carried snacks", "tip": "Fewer food-delivery trips while travelling", "co2eHint": "0.12 kg + plastic" },
+      { "id": "travel-no-laundry-bag", "label": "Skipped hotel plastic laundry bag", "tip": "Small plastics add up on trips", "co2eHint": "10g plastic saved" }
+    ]
+  },
+  "MARKET": {
+    "id": "MARKET",
+    "label": "Shopping / market",
+    "emoji": "🛒",
+    "intro": "Smart shopping cuts plastic and food miles.",
+    "items": [
+      { "id": "market-cloth-bag", "label": "Brought cloth or jute bag", "tip": "One LDPE bag ≈ 10–20g plastic", "co2eHint": "20g plastic saved" },
+      { "id": "market-local", "label": "Bought local seasonal produce", "tip": "Less transport & cold storage energy", "co2eHint": "0.1 kg saved" },
+      { "id": "market-bulk", "label": "Bought larger pack instead of many small ones", "tip": "Less packaging per gram of product", "co2eHint": "30g plastic saved" },
+      { "id": "market-no-impulse", "label": "Skipped impulse packaged snacks", "tip": "Multilayer chips packs are hard to recycle", "co2eHint": "8g plastic each" }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "no-delivery-3",
+    "title": "3 days delivery-free",
+    "description": "Skip Blinkit, Zepto, Swiggy & Zomato for 3 days this week",
+    "emoji": "📦",
+    "type": "delivery_free_days",
+    "target": 3
+  },
+  {
+    "id": "bus-metro-5",
+    "title": "5 bus or metro trips",
+    "description": "Take public transport at least 5 times this week",
+    "emoji": "🚌",
+    "type": "public_trips",
+    "target": 5,
+    "modes": ["BUS", "METRO", "TRAIN"]
+  },
+  {
+    "id": "active-3",
+    "title": "Walk or cycle 3 times",
+    "description": "Active commute — walk or cycle at least 3 trips",
+    "emoji": "🚶",
+    "type": "active_trips",
+    "target": 3,
+    "modes": ["WALK", "CYCLE"]
+  },
+  {
+    "id": "school-checklist",
+    "title": "School checklist hero",
+    "description": "Complete the school / college checklist once this week",
+    "emoji": "🏫",
+    "type": "checklist",
+    "contextId": "SCHOOL",
+    "target": 1
+  },
+  {
+    "id": "beach-checklist",
+    "title": "Beach day champion",
+    "description": "Complete the beach checklist once this week",
+    "emoji": "🏖️",
+    "type": "checklist",
+    "contextId": "BEACH",
+    "target": 1
+  },
+  {
+    "id": "recycle-100",
+    "title": "Recycle 100g plastic",
+    "description": "Log at least 100g of recycled plastic this week",
+    "emoji": "♻️",
+    "type": "plastic_recycled",
+    "target": 100
+  }
+]

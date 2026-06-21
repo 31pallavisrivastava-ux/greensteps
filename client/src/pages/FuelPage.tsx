@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Fuel, IndianRupee } from 'lucide-react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { PageHeader, EmptyState } from '../components/ui'
 
 interface FuelPurchase {
   id: string
@@ -20,6 +22,7 @@ export function FuelPage() {
     vehicleId: '',
     purchasedAt: new Date().toISOString().slice(0, 16),
   })
+  const [saved, setSaved] = useState(false)
 
   const load = () => api<FuelPurchase[]>('/fuel').then(setPurchases).catch(console.error)
   useEffect(() => { load() }, [])
@@ -34,73 +37,112 @@ export function FuelPage() {
         vehicleId: form.vehicleId || undefined,
       }),
     })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
     load()
   }
 
   return (
-    <div className="space-y-4">
-      <div className="card">
-        <p className="text-xs text-slate-500">Scope 1 · IPCC fuel factors</p>
-        <h2 className="font-semibold text-brand">Log fuel purchase</h2>
-        <form onSubmit={submit} className="mt-3 space-y-3">
-          <div>
-            <label className="label">Liters</label>
-            <input
-              className="input"
-              type="number"
-              step="0.1"
-              value={form.liters}
-              onChange={(e) => setForm({ ...form, liters: +e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="label">Amount (₹)</label>
-            <input
-              className="input"
-              type="number"
-              value={form.amountInr}
-              onChange={(e) => setForm({ ...form, amountInr: +e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="label">Vehicle</label>
-            <select
-              className="input"
-              value={form.vehicleId}
-              onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
-            >
-              <option value="">None</option>
-              {user?.vehicles?.map((v) => (
-                <option key={v.id} value={v.id}>{v.label} ({v.fuelType})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Date</label>
-            <input
-              className="input"
-              type="datetime-local"
-              value={form.purchasedAt}
-              onChange={(e) => setForm({ ...form, purchasedAt: e.target.value })}
-            />
-          </div>
-          <button type="submit" className="btn-primary w-full">Save fuel log</button>
-        </form>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        icon={Fuel}
+        iconBg="bg-red-100"
+        iconColor="text-red-700"
+        title="Petrol & diesel"
+        subtitle="Log when you fill fuel at a petrol pump"
+        help="Enter the number of litres from your bill. This helps calculate carbon from your vehicle."
+      />
 
-      <h2 className="text-sm font-semibold">History</h2>
-      {purchases.map((p) => (
-        <div key={p.id} className="card text-sm">
-          <div className="flex justify-between font-medium">
-            <span>{p.liters}L {p.fuelType}</span>
-            <span>{p.co2eKg.toFixed(2)} kg CO₂e</span>
-          </div>
-          <p className="text-xs text-slate-500">
-            {new Date(p.purchasedAt).toLocaleString()}
-            {p.amountInr ? ` · ₹${p.amountInr}` : ''}
-          </p>
+      <form onSubmit={submit} className="card space-y-4">
+        <div>
+          <label className="label" htmlFor="liters">Litres filled</label>
+          <input
+            id="liters"
+            className="input"
+            type="number"
+            step="0.1"
+            min={0.1}
+            value={form.liters}
+            onChange={(e) => setForm({ ...form, liters: +e.target.value })}
+          />
+          <p className="hint">Look on your petrol pump receipt</p>
         </div>
-      ))}
+
+        <div>
+          <label className="label" htmlFor="amount">
+            <span className="flex items-center gap-2">
+              <IndianRupee className="h-4 w-4" aria-hidden /> Amount paid (optional)
+            </span>
+          </label>
+          <input
+            id="amount"
+            className="input"
+            type="number"
+            value={form.amountInr}
+            onChange={(e) => setForm({ ...form, amountInr: +e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="label" htmlFor="vehicle">Vehicle</label>
+          <select
+            id="vehicle"
+            className="input"
+            value={form.vehicleId}
+            onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
+          >
+            <option value="">Select vehicle (optional)</option>
+            {user?.vehicles?.map((v) => (
+              <option key={v.id} value={v.id}>{v.label} — {v.fuelType}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="label" htmlFor="date">Date & time</label>
+          <input
+            id="date"
+            className="input"
+            type="datetime-local"
+            value={form.purchasedAt}
+            onChange={(e) => setForm({ ...form, purchasedAt: e.target.value })}
+          />
+        </div>
+
+        <button type="submit" className="btn-primary w-full">
+          {saved ? 'Saved!' : 'Save fuel entry'}
+        </button>
+      </form>
+
+      <h2 className="section-title">Previous entries</h2>
+      {purchases.length === 0 ? (
+        <EmptyState
+          icon={Fuel}
+          title="No fuel logged yet"
+          message="When you visit a petrol pump, come back here and add the litres you bought."
+        />
+      ) : (
+        <div className="space-y-3">
+          {purchases.map((p) => (
+            <div key={p.id} className="card flex items-center gap-4">
+              <div className="icon-circle bg-red-50">
+                <Fuel className="h-6 w-6 text-red-600" aria-hidden />
+              </div>
+              <div className="flex-1">
+                <p className="text-lg font-bold text-slate-900">{p.liters} litres</p>
+                <p className="text-sm text-slate-500">
+                  {new Date(p.purchasedAt).toLocaleDateString()}
+                  {p.amountInr ? ` · ₹${p.amountInr}` : ''}
+                </p>
+              </div>
+              <p className="text-right text-sm font-bold text-brand">
+                {p.co2eKg.toFixed(1)} kg<br />
+                <span className="font-normal text-slate-500">CO₂</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

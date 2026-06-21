@@ -12,7 +12,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name?: string) => Promise<void>
   logout: () => void
-  refreshUser: () => Promise<void>
+  refreshUser: (opts?: { clearOnFailure?: boolean }) => Promise<AuthUser | null>
+  setUserProfile: (user: AuthUser) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -21,22 +22,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const refreshUser = async () => {
+  const refreshUser = async (opts?: { clearOnFailure?: boolean }) => {
+    const clearOnFailure = opts?.clearOnFailure ?? true
     if (!hasToken()) {
       setUser(null)
-      return
+      return null
     }
     try {
       const me = await api<AuthUser>('/users/me')
       setUser(me)
+      return me
     } catch {
-      clearToken()
-      setUser(null)
+      if (clearOnFailure) {
+        clearToken()
+        setUser(null)
+      }
+      return null
     }
   }
 
+  const setUserProfile = (profile: AuthUser) => {
+    setUser((prev) => ({
+      ...(prev ?? {}),
+      ...profile,
+      onboardingCompleted: profile.onboardingCompleted === true,
+    } as AuthUser))
+  }
+
   useEffect(() => {
-    refreshUser().finally(() => setLoading(false))
+    refreshUser({ clearOnFailure: true }).finally(() => setLoading(false))
   }, [])
 
   const login = async (email: string, password: string) => {
@@ -46,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     setToken(res.token)
     setUser(res.user)
-    await refreshUser()
+    await refreshUser({ clearOnFailure: false })
   }
 
   const register = async (email: string, password: string, name?: string) => {
@@ -56,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     setToken(res.token)
     setUser(res.user)
-    await refreshUser()
+    await refreshUser({ clearOnFailure: false })
   }
 
   const logout = () => {
@@ -65,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, setUserProfile }}>
       {children}
     </AuthContext.Provider>
   )

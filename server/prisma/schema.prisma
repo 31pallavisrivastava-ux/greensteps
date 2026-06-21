@@ -93,11 +93,15 @@ model User {
   email           String           @unique
   passwordHash    String           @map("password_hash")
   name            String?
+  city            String?
   homeLat         Float?
   homeLng         Float?
   workLat         Float?
   workLng         Float?
   state           String?
+  onboardingCompleted Boolean        @default(false) @map("onboarding_completed")
+  transportPreference String?        @map("transport_preference")
+  topConcern      String?            @map("top_concern")
   createdAt       DateTime         @default(now()) @map("created_at")
   vehicles        Vehicle[]
   trips           Trip[]
@@ -105,6 +109,8 @@ model User {
   energyReadings  EnergyReading[]
   deliveryOrders  DeliveryOrder[]
   plasticEvents   PlasticEvent[]
+  classMembers    ClassMember[]
+  createdGroups   ClassGroup[]     @relation("GroupCreator")
 
   @@map("users")
 }
@@ -277,4 +283,43 @@ model OfflineQueueItem {
   synced    Boolean  @default(false)
 
   @@map("offline_queue")
+}
+
+model ContextChecklistSession {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  contextId   String   @map("context_id")
+  itemsDone   String   @map("items_done")
+  itemCount   Int      @map("item_count")
+  totalItems  Int      @map("total_items")
+  estCo2Saved Float    @default(0) @map("est_co2_saved")
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  @@index([userId, completedAt])
+  @@map("context_checklist_sessions")
+}
+
+model ClassGroup {
+  id          String        @id @default(uuid())
+  name        String
+  joinCode    String        @unique @map("join_code")
+  createdById String        @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  createdBy   User          @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     ClassMember[]
+
+  @@map("class_groups")
+}
+
+model ClassMember {
+  id       String     @id @default(uuid())
+  userId   String     @map("user_id")
+  groupId  String     @map("group_id")
+  joinedAt DateTime   @default(now()) @map("joined_at")
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group    ClassGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+  @@map("class_members")
 }

@@ -15,10 +15,20 @@ export async function api<T>(
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${API}${path}`, { ...options, headers })
+  const res = await fetch(`${API}${path}`, { ...options, headers }).catch(() => {
+    throw new Error(
+      'Cannot reach API server — run: npm run dev -w server (port 3001)'
+    )
+  })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error ?? 'Request failed')
+    const message =
+      typeof err.error === 'string'
+        ? err.error
+        : res.status === 401
+          ? 'Unauthorized — check email/password or start the API server'
+          : `Request failed (${res.status})`
+    throw new Error(message)
   }
   return res.json()
 }
