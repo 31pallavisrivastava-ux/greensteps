@@ -122,10 +122,10 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 | **High** | Smart dynamic assistant | Priority rules engine, agentic Ollama coach with tool calls, context checklists, AQI nudges |
 | **High** | Context-based decisions | Onboarding profile + weekly footprint drive daily action |
 | **High** | Real-world usability | India merchants, CEA grid, mobile PWA, demo account |
-| **High** | Code quality | Shared types, Zod validation, `asyncHandler` routes, extracted engines, `ApiError` client layer, CI build + tests |
-| **Medium** | Security | Helmet headers, auth rate limiting, JWT + bcrypt, Zod validation, production secret guard |
+| **High** | Code quality | Shared Zod schemas, `validateBody`/`asyncHandler` routes, extracted engines, `ApiError` client layer, CI build + tests |
+| **Medium** | Security | Helmet + HSTS, dual rate limits, JWT + bcrypt, Zod validation, UUID param checks, production secret guard |
 | **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
-| **Medium** | Testing | `npm test` — **46 tests** across 13 suites; GitHub Actions CI (tests + build) on every push |
+| **Medium** | Testing | `npm test` — **60 tests** across 16 suites; GitHub Actions CI (tests + build) on every push |
 | **Medium** | Accessibility | Skip links, focus rings, dialog trap, 44px targets, page titles |
 | **Low** | Polish | Block UI, screenshots, WhatsApp share cards, 12-week charts |
 
@@ -391,17 +391,19 @@ Interactive checklists for where you are today:
 
 ### Security
 
-- **Helmet** — HTTP security headers on all responses
-- **Rate limiting** — 30 auth attempts per 15 min per IP on `/api/auth/*`
-- **JWT** — signed tokens; production refuses weak/default `JWT_SECRET`
-- **Validation** — Zod schemas on auth, coach, trips, and write endpoints
-- **Passwords** — bcrypt hashing (cost factor 10)
+- **Helmet** — HTTP security headers (including HSTS in production)
+- **Rate limiting** — 30 auth attempts / 15 min on `/api/auth/*`; 400 requests / 15 min on all `/api/*`
+- **CORS** — configurable via `CORS_ORIGIN` in production
+- **JWT** — 7-day expiry; production refuses weak/default `JWT_SECRET`
+- **Validation** — Zod schemas on auth, coach, trips, family/groups, and write endpoints
+- **Authorization** — family/class dashboards return 403 for non-members; UUID params validated
+- **Passwords** — bcrypt (cost 10); min 8 / max 128 chars; emails normalized to lowercase
 
 ### Code quality
 
 - **Shared contracts** — `@carbon/shared` enums (e.g. `TransportMode`) reused in Zod schemas and UI
-- **HTTP helpers** — `asyncHandler`, global Zod/400 error handler, typed `parseOptionalDate`
-- **DRY utilities** — `generateUniqueJoinCode` for family/class groups; `buildWeeklyTips` extracted from routes
+- **HTTP helpers** — `asyncHandler`, `validateBody`/`validateParams`, global Zod/400 error handler
+- **DRY utilities** — `generateUniqueJoinCode`, `buildWeeklyTips`, shared auth/group schemas in `server/src/lib/schemas/`
 - **Client API layer** — `ApiError` with HTTP status + `getErrorMessage()` for consistent UI errors
 - **CI** — GitHub Actions runs `npm test` and `npm run build` on every push
 
@@ -482,7 +484,7 @@ carbon-footprint-pwa/
 ```bash
 npm run dev          # client :5173 + server :3001
 npm run build        # shared → server → client
-npm run test         # 46 tests: unit + API integration (CI on push)
+npm run test         # 60 tests: unit + API integration (CI on push)
 npm run db:push      # apply Prisma schema (required after model changes)
 npm run db:seed      # emission factors, merchants, demo user
 ```
@@ -495,6 +497,7 @@ npm run db:seed      # emission factors, merchants, demo user
 DATABASE_URL="file:./dev.db"
 JWT_SECRET="change-me-in-production"
 PORT=3001
+CORS_ORIGIN="https://your-app.onrender.com"   # optional — restrict API CORS in production
 
 # Open-source local LLM (Ollama) — see Agentic AI coach section
 LLM_BASE_URL="http://127.0.0.1:11434"

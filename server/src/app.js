@@ -19,7 +19,7 @@ import { groupsRouter } from './routes/groups.js'
 import { familyRouter } from './routes/family.js'
 import { coachRouter } from './routes/coach.js'
 import { prisma } from './lib/prisma.js'
-import { assertProductionSecrets, authRateLimiter, securityMiddleware } from './middleware/security.js'
+import { assertProductionSecrets, apiRateLimiter, authRateLimiter, corsOptions, securityMiddleware } from './middleware/security.js'
 import { isBadRequestError, zodErrorBody } from './lib/http.js'
 
 export function createApp() {
@@ -28,7 +28,7 @@ export function createApp() {
   const app = express()
 
   app.use(securityMiddleware())
-  app.use(cors())
+  app.use(cors(corsOptions()))
   app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
   app.use(express.json({ limit: '2mb' }))
 
@@ -47,6 +47,7 @@ export function createApp() {
     }
   })
 
+  app.use('/api', apiRateLimiter())
   app.use('/api/auth', authRateLimiter(), authRouter)
   app.use('/api/users', usersRouter)
   app.use('/api/trips', tripsRouter)

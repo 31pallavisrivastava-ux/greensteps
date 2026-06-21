@@ -85,6 +85,19 @@ describe('API integration', () => {
     assert.ok(body.error)
   })
 
+  it('POST /api/auth/register rejects weak password', async () => {
+    const { status, body } = await api('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: `weak-${Date.now()}@test.local`,
+        password: 'short',
+        name: 'Weak',
+      }),
+    })
+    assert.equal(status, 400)
+    assert.ok(body.error)
+  })
+
   it('POST /api/auth/register rejects duplicate email', async () => {
     const email = `dup-${Date.now()}@test.local`
     await registerUser(email)
@@ -248,6 +261,38 @@ describe('API integration', () => {
       body: JSON.stringify({ points: [] }),
     })
     assert.equal(status, 400)
+  })
+
+  it('GET /api/family/:id/dashboard returns 403 for non-members', async () => {
+    const owner = await registerUser(`fam-owner-${Date.now()}@test.local`)
+    const outsider = await registerUser(`fam-outsider-${Date.now()}@test.local`)
+
+    const created = await api('/api/family', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${owner.token}` },
+      body: JSON.stringify({ name: 'Private Household' }),
+    })
+    assert.equal(created.status, 201)
+
+    const { status, body } = await api(`/api/family/${created.body.id}/dashboard`, {
+      headers: { Authorization: `Bearer ${outsider.token}` },
+    })
+    assert.equal(status, 403)
+    assert.match(body.error, /Not a member/)
+  })
+
+  it('GET /api/family/:id/dashboard rejects invalid id', async () => {
+    const { token } = await registerUser(`fam-badid-${Date.now()}@test.local`)
+    const { status } = await api('/api/family/not-a-uuid/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 400)
+  })
+
+  it('GET /api/health includes rate-limit headers on API routes', async () => {
+    const res = await fetch(`${baseUrl}/api/engage/cities`)
+    assert.equal(res.status, 200)
+    assert.ok(res.headers.get('ratelimit-limit'))
   })
 
   it('POST /api/auth/login succeeds with valid credentials', async () => {
