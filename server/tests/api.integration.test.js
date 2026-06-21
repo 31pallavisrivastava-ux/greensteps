@@ -35,6 +35,7 @@ async function registerUser(email, password = 'testpass1') {
 before(async () => {
   process.env.DATABASE_URL = 'file:./test-integration.db'
   process.env.JWT_SECRET = 'test-integration-secret'
+  process.env.LLM_AGENT_ENABLED = 'false'
 
   for (const f of [testDbPath, `${testDbPath}-journal`]) {
     if (existsSync(f)) rmSync(f)
@@ -65,12 +66,41 @@ after(async () => {
 })
 
 describe('API integration', () => {
-  it('GET /api/health exposes assistant routes', async () => {
+  it('GET /api/health exposes assistant routes and db status', async () => {
     const { status, body } = await api('/api/health')
     assert.equal(status, 200)
     assert.equal(body.status, 'ok')
+    assert.equal(body.db, 'connected')
     assert.ok(body.routes.includes('family'))
+    assert.ok(body.routes.includes('coach'))
     assert.ok(body.routes.includes('insights/personal'))
+  })
+
+  it('POST /api/auth/login rejects invalid email format', async () => {
+    const { status, body } = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'not-an-email', password: 'x' }),
+    })
+    assert.equal(status, 400)
+    assert.ok(body.error)
+  })
+
+  it('POST /api/auth/register rejects duplicate email', async () => {
+    const email = `dup-${Date.now()}@test.local`
+    await registerUser(email)
+    const { status } = await api('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password: 'testpass1', name: 'Dup' }),
+    })
+    assert.equal(status, 409)
+  })
+
+  it('rejects invalid JWT on protected routes', async () => {
+    const { status, body } = await api('/api/insights/personal', {
+      headers: { Authorization: 'Bearer invalid.token.here' },
+    })
+    assert.equal(status, 401)
+    assert.equal(body.error, 'Invalid token')
   })
 
   it('POST /api/auth/login rejects bad credentials', async () => {
@@ -84,6 +114,55 @@ describe('API integration', () => {
   it('GET /api/insights/personal requires auth', async () => {
     const { status } = await api('/api/insights/personal')
     assert.equal(status, 401)
+  })
+
+  it('GET /api/engage/cities returns Indian city list', async () => {
+    const { status, body } = await api('/api/engage/cities')
+    assert.equal(status, 200)
+    assert.ok(Array.isArray(body))
+    assert.ok(body.length >= 10)
+    assert.ok(body.some((c) => c.name === 'Mumbai'))
+  })
+
+  it('GET /api/engage/today-action returns personalized nudge', async () => {
+    const { token } = await registerUser(`action-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/engage/today-action', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.ok(body.id)
+    assert.ok(body.message.length > 5)
+    assert.ok(body.link)
+  })
+
+  it('GET /api/insights/history returns weekly trend array', async () => {
+    const { token } = await registerUser(`history-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/insights/history?weeks=4', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.ok(Array.isArray(body.weeks))
+    assert.equal(body.weeks.length, 4)
+  })
+
+  it('GET /api/insights/weekly returns footprint breakdown', async () => {
+    const { token } = await registerUser(`weekly-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/insights/weekly', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.equal(typeof body.footprint.total, 'number')
+    assert.ok(Array.isArray(body.tips))
+  })
+
+  it('GET /api/guide/contexts returns checklist contexts', async () => {
+    const { token } = await registerUser(`guide-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/guide/contexts', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.ok(Array.isArray(body))
+    assert.ok(body.some((c) => c.id === 'BEACH'))
   })
 
   it('GET /api/insights/personal returns footprint for logged-in user', async () => {
@@ -137,6 +216,46 @@ describe('API integration', () => {
     assert.equal(body.mode, 'rules')
     assert.ok(body.reply.length > 10)
     assert.ok(Array.isArray(body.toolsUsed))
+  })
+
+  it('GET /api/health includes security headers from Helmet', async () => {
+    const res = await fetch(`${baseUrl}/api/health`)
+    assert.equal(res.status, 200)
+    assert.ok(res.headers.get('x-content-type-options'))
+    assert.ok(res.headers.get('x-frame-options'))
+  })
+
+  it('POST /api/trips/draft rejects invalid payload', async () => {
+    const { token } = await registerUser(`trips-${Date.now()}@test.local`)
+    const { status } = await api('/api/trips/draft', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ points: [] }),
+    })
+    assert.equal(status, 400)
+  })
+
+  it('POST /api/auth/login succeeds with valid credentials', async () => {
+    const email = `login-ok-${Date.now()}@test.local`
+    const password = 'testpass1'
+    await registerUser(email, password)
+    const { status, body } = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+    assert.equal(status, 200)
+    assert.ok(body.token)
+    assert.equal(body.user.email, email)
+  })
+
+  it('GET /api/engage/dashboard returns budget and challenges', async () => {
+    const { token } = await registerUser(`dash-${Date.now()}@test.local`)
+    const { status, body } = await api('/api/engage/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(status, 200)
+    assert.ok(body.budget)
+    assert.ok(Array.isArray(body.challenges))
   })
 
   it('GET /api/coach/status reports agent availability', async () => {

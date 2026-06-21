@@ -1,6 +1,7 @@
 # GreenSteps
 
 [![GitHub](https://img.shields.io/badge/GitHub-greensteps-0f4c3a?style=flat&logo=github)](https://github.com/31pallavisrivastava-ux/greensteps)
+[![CI](https://github.com/31pallavisrivastava-ux/greensteps/actions/workflows/ci.yml/badge.svg)](https://github.com/31pallavisrivastava-ux/greensteps/actions/workflows/ci.yml)
 
 **GreenSteps** is a GHG Protocol–aligned personal carbon footprint PWA built for everyday life in India — commute, electricity, quick-commerce deliveries (Blinkit, Zepto, Swiggy, Zomato), plastic waste, and context-aware sustainability checklists.
 
@@ -97,7 +98,10 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 | `todayAction.test.js` | Assistant decision priority rules |
 | `utilityBillParser.test.js` | Indian electricity bill OCR parsing |
 | `emissionsBudget.test.js` | Science-based weekly fair-share constant |
-| `api.integration.test.js` | Health, auth, `/insights/personal`, family create/join, coach chat/status |
+| `api.integration.test.js` | Health, auth validation, JWT, engage, insights, guide, family, coach |
+| `auth.middleware.test.js` | Bearer token validation, production JWT_SECRET guard |
+| `emissionsEngine.test.js` | Trip mode inference and transport category mapping |
+| `coach.tools.test.js` | Agent tool definitions and unknown-tool handling |
 
 ### Assumptions
 
@@ -119,9 +123,9 @@ Run tests: `npm test` (unit + API integration; uses isolated `test-integration.d
 | **High** | Context-based decisions | Onboarding profile + weekly footprint drive daily action |
 | **High** | Real-world usability | India merchants, CEA grid, mobile PWA, demo account |
 | **High** | Code quality | Monorepo, shared types, modular engines, consistent UI patterns |
-| **Medium** | Security | JWT auth, bcrypt passwords, Zod validation, `.env` for secrets |
+| **Medium** | Security | Helmet headers, auth rate limiting, JWT + bcrypt, Zod validation, production secret guard |
 | **Medium** | Efficiency | SQLite for dev, aggregated queries, optional endpoints don’t block UI |
-| **Medium** | Testing | `npm test` — 15 tests: assistant rules, OCR, budget constant, API auth/personal/family/coach |
+| **Medium** | Testing | `npm test` — **41 tests** across 11 suites; GitHub Actions CI on every push |
 | **Medium** | Accessibility | Skip links, focus rings, dialog trap, 44px targets, page titles |
 | **Low** | Polish | Block UI, screenshots, WhatsApp share cards, 12-week charts |
 
@@ -385,6 +389,14 @@ Interactive checklists for where you are today:
 - **Keyboard & screen reader** — skip links, focus rings, dialog trap, `role="alert"` for errors
 - **Touch targets** — 44px minimum on primary actions
 
+### Security
+
+- **Helmet** — HTTP security headers on all responses
+- **Rate limiting** — 30 auth attempts per 15 min per IP on `/api/auth/*`
+- **JWT** — signed tokens; production refuses weak/default `JWT_SECRET`
+- **Validation** — Zod schemas on auth, coach, and write endpoints
+- **Passwords** — bcrypt hashing (cost factor 10)
+
 ## Family tracking
 
 1. Open **Home** → tap **Track with family →**, or go to `/family`.
@@ -461,7 +473,7 @@ carbon-footprint-pwa/
 ```bash
 npm run dev          # client :5173 + server :3001
 npm run build        # shared → server → client
-npm run test         # 15 tests: assistant rules, bill OCR, budget, API + coach
+npm run test         # 41 tests: unit + API integration (CI on push)
 npm run db:push      # apply Prisma schema (required after model changes)
 npm run db:seed      # emission factors, merchants, demo user
 ```
